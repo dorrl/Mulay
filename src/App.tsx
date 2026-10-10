@@ -115,6 +115,7 @@ const applyRoomToPlayer = (
   ready: boolean,
   room: Room,
   loadedVideo: { current: string | null },
+  pendingVideoSync: { current: string | null },
 ): void => {
   if (!player || !ready) return
 
@@ -189,7 +190,7 @@ export default function App() {
       if (awaitingSync.current) {
         awaitingSync.current = false
         window.setTimeout(() => {
-          applyRoomToPlayer(player.current, playerReady.current, next, loadedVideo)
+          applyRoomToPlayer(player.current, playerReady.current, next, loadedVideo, pendingVideoSync)
         }, 500)
       }
     })
@@ -230,7 +231,7 @@ export default function App() {
             player.current = event.target
             playerReady.current = true
             event.target.setVolume?.(volume)
-            applyRoomToPlayer(player.current, true, currentRoom.current, loadedVideo)
+            applyRoomToPlayer(player.current, true, currentRoom.current, loadedVideo, pendingVideoSync)
           },
           onStateChange: (event: PlayerEvent) => {
             const states = window.YT?.PlayerState
@@ -311,7 +312,7 @@ export default function App() {
       manualPauseRef.current = false
       setLocalPaused(false)
     }
-    applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo)
+    applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo, pendingVideoSync)
     if (!room.paused && !localPausedRef.current && room.current) {
       player.current?.playVideo?.()
     }
