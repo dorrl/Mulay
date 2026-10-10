@@ -3,6 +3,7 @@ import express from 'express'
 import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import session from 'express-session'
 import SQLiteStoreFactory from 'connect-sqlite3'
@@ -19,6 +20,7 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || './data')
 const DATA_FILE = path.join(DATA_DIR, 'room.json')
 const SESSION_SECRET = process.env.SESSION_SECRET
 if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
+  if (process.env.NODE_ENV === 'production') throw new Error('SESSION_SECRET must be at least 32 characters in production.')
   console.warn('[security] Set SESSION_SECRET to a random value of at least 32 characters.')
 }
 const Store = SQLiteStoreFactory(session)
@@ -292,6 +294,12 @@ io.on('connection', (socket) => {
     ack?.({ ok: true })
   })
 })
+
+if (existsSync(path.resolve('./dist'))) {
+  const dist = path.resolve('./dist')
+  app.use(express.static(dist, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
+  app.get(/^(?!\\/api(?:\\/|$)|\\/auth(?:\\/|$)|\\/socket\\.io(?:\\/|$)).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
+}
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[http]', error)
