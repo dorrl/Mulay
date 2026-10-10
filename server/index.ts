@@ -106,7 +106,7 @@ const promoteNext = () => {
 const getUser = (socket: import('socket.io').Socket): User | null => (socket.request as typeof socket.request & { user?: User }).user ?? null
 
 app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : false)
-app.use(helmet({ crossOriginEmbedderPolicy: false, contentSecurityPolicy: false }))
+app.use(helmet({ crossOriginEmbedderPolicy: false, contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.youtube.com', 'https://s.ytimg.com', 'https://apis.google.com'], styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'], fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'], imgSrc: ["'self'", 'data:', 'https://i.ytimg.com', 'https://*.googleusercontent.com', 'https://*.ggpht.com'], frameSrc: ["'self'", 'https://www.youtube.com', 'https://youtube.com', 'https://accounts.google.com'], connectSrc: ["'self'", 'https://www.googleapis.com', 'https://www.youtube.com', 'wss:', 'ws:'] } } }))
 app.use(express.json({ limit: '32kb' }))
 app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-8', legacyHeaders: false }))
 const sessionMiddleware = session({
