@@ -536,11 +536,12 @@ export default function App() {
                   })
                   return
                 }
-                if (!frame.requestFullscreen) {
+                const request = frame.requestFullscreen;
+                if (!request) {
                   setNotice('이 브라우저에서는 전체 화면을 지원하지 않아요.')
                   return
                 }
-                void frame.requestFullscreen().catch(() => {
+                request.bind(frame)().catch(() => {
                   setNotice('전체 화면이 차단됐어요. 브라우저 권한을 확인해 주세요.')
                 })
               }}
