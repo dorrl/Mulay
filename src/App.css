@@ -476,3 +476,46 @@ main {
 .track-added-by > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .track-added-by small { color: #777783; font-size: 9px; }
 .track-added-by strong { color: #d6d5df; font-size: 11px; font-weight: 600; }
+
+
+/* Keep the video at its natural 16:9 ratio instead of stretching to the
+   taller metadata column. */
+.player-card {
+  align-items: start;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+}
+.player-frame {
+  width: 100%;
+  align-self: start;
+}
+.now-playing {
+  min-width: 0;
+  align-self: stretch;
+}
+.player-frame:fullscreen {
+  display: block;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.player-frame:fullscreen #youtube-player,
+.player-frame:fullscreen #youtube-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+@media (max-width: 900px) {
+  .player-card {
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+  }
+  .now-playing { padding: 22px; }
+}
+@media (max-width: 680px) {
+  .player-card { grid-template-columns: 1fr; }
+  .now-playing { border-left: 0; border-top: 1px solid #ffffff0b; }
+}
