@@ -7,8 +7,9 @@
     "dev": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 0.0.0.0\"",
     "dev:web": "vite --host 0.0.0.0",
     "dev:server": "tsx watch server/index.ts",
-    "build": "tsc -b && vite build",
+    "build": "tsc -p tsconfig.server.json && tsc -b && vite build",
     "start": "tsx server/index.ts",
+    "typecheck": "tsc -p tsconfig.server.json && tsc -b",
     "lint": "eslint .",
     "preview": "vite preview"
   },
