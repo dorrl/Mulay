@@ -135,12 +135,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     state: true,
   }, (_accessToken, _refreshToken, profile, done) => {
     const email = profile.emails?.[0]?.value || ''
+    const emailVerified = profile._json.email_verified === true
     const user: User = {
       id: profile.id,
       name: (profile.displayName || 'Listener').slice(0, 80),
       email: email.slice(0, 254),
       avatar: profile.photos?.[0]?.value || '',
-      admin: admins.has(profile.id) || adminEmails.has(email.toLowerCase()),
+      admin: admins.has(profile.id) || (emailVerified && adminEmails.has(email.toLowerCase())),
     }
     done(null, user)
   }))
