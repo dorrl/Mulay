@@ -69,6 +69,7 @@ const loadState = async () => {
 }
 const safeUser = (u: User) => ({ id: u.id, name: u.name, avatar: u.avatar, admin: u.admin })
 const admins = new Set((process.env.ADMIN_GOOGLE_IDS || '').split(',').map((v) => v.trim()).filter(Boolean))
+const adminEmails = new Set((process.env.ADMIN_EMAILS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean))
 const toTrack = (videoId: string, title: string, channel: string, thumbnail: string, user: User): Track => ({
   id: randomUUID(), videoId, title: title.slice(0, 200), channel: channel.slice(0, 120),
   thumbnail: thumbnail.startsWith('https://i.ytimg.com/') ? thumbnail : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
@@ -125,7 +126,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       name: (profile.displayName || 'Listener').slice(0, 80),
       email: email.slice(0, 254),
       avatar: profile.photos?.[0]?.value || '',
-      admin: admins.has(profile.id),
+      admin: admins.has(profile.id) || adminEmails.has(email.toLowerCase()),
     }
     done(null, user)
   }))
@@ -201,6 +202,10 @@ io.on('connection', (socket) => {
   socket.emit('room:state', publicState())
   socket.emit('user:profile', safeUser(user))
   socket.on('sync:request', () => socket.emit('room:state', publicState()))
+  socket.on('playback:ended', (raw: unknown) => {
+    const parsed = z.object({ videoId: videoIdSchema }).safeParse(raw)
+    if (parsed.success && state.current?.videoId === parsed.data.videoId) promoteNext()
+  })
 
   socket.on('queue:add', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
     const parsed = addSchema.safeParse(raw)
