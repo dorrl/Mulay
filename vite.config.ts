@@ -1,11 +1,10 @@
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import { defineConfig } from 'vite'
-
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    babel({ presets: [reactCompilerPreset()] })
-  ],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  build: { outDir: 'dist/public', emptyOutDir: true },
+  server: { proxy: {
+    '/server': { target: 'http://localhost:3001', changeOrigin: true, ws: true },
+  } },
 })
