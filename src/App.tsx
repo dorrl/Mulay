@@ -18,6 +18,8 @@ type Track = {
   durationSeconds?: number
   likes: number
   dislikes: number
+  addedByName?: string
+  addedByAvatar?: string
 }
 
 type Message = {
@@ -53,6 +55,7 @@ type Player = {
   loadVideoById?: (arg: { videoId: string; startSeconds?: number }) => void
   seekTo?: (seconds: number, allowSeekAhead: boolean) => void
   getCurrentTime?: () => number
+  getDuration?: () => number
   getPlaybackRate?: () => number
   setPlaybackRate?: (rate: number) => void
   getPlayerState?: () => number
@@ -95,6 +98,12 @@ const blank: Room = {
   chat: [],
 }
 
+const formatTime = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const total = Math.floor(seconds)
+  return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0')
+}
+
 const position = (room: Room): number => {
   if (room.paused && room.pausedAt !== null) return room.pausedAt
   if (room.startedAt === null) return 0
@@ -119,6 +128,7 @@ const applyRoomToPlayer = (
   if (loadedVideo.current !== room.current.videoId) {
     if (typeof player.loadVideoById !== 'function') return
     loadedVideo.current = room.current.videoId
+    pendingVideoSync.current = room.current.videoId
     player.loadVideoById({
       videoId: room.current.videoId,
       startSeconds: targetPosition,
@@ -147,15 +157,25 @@ export default function App() {
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [localPaused, setLocalPaused] = useState(false)
   const [volume, setVolume] = useState(70)
+  const [playbackTime, setPlaybackTime] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
   const localPausedRef = useRef(false)
+  const manualPauseRef = useRef(false)
+  const chatMessagesRef = useRef<HTMLDivElement>(null)
   const socket = useRef<Socket | null>(null)
   const player = useRef<Player | null>(null)
   const playerReady = useRef(false)
   const playerHost = useRef<HTMLDivElement>(null)
   const loadedVideo = useRef<string | null>(null)
+  const pendingVideoSync = useRef<string | null>(null)
   const awaitingSync = useRef(false)
   const currentRoom = useRef(room)
   currentRoom.current = room
+
+  useEffect(() => {
+    const messages = chatMessagesRef.current
+    if (messages) messages.scrollTop = messages.scrollHeight
+  }, [room.chat])
 
   useEffect(() => {
     fetch('/server/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
@@ -225,12 +245,30 @@ export default function App() {
               }
             }
 
-            // A client recovering from a local pause must not change the shared timeline.
-            if (event.data === states.PLAYING && currentRoom.current.paused) {
-              event.target.seekTo?.(position(currentRoom.current), true)
-              event.target.pauseVideo?.()
+            // Track native YouTube pauses so resuming returns to the shared timeline.
+            if (event.data === states.PAUSED && !currentRoom.current.paused && !localPausedRef.current) {
+              manualPauseRef.current = true
             }
-            if (event.data === states.PLAYING) setAutoplayBlocked(false)
+            if (event.data === states.PLAYING) {
+              // Video loading can take time; seek again once playback actually starts.
+              if (pendingVideoSync.current === currentRoom.current.current?.videoId) {
+                event.target.seekTo?.(position(currentRoom.current), true)
+                pendingVideoSync.current = null
+                if (currentRoom.current.paused) event.target.pauseVideo?.()
+              }
+              if (currentRoom.current.paused) {
+                event.target.seekTo?.(position(currentRoom.current), true)
+                event.target.pauseVideo?.()
+              } else if (manualPauseRef.current && !localPausedRef.current) {
+                const expected = position(currentRoom.current)
+                const actual = event.target.getCurrentTime?.()
+                if (actual === undefined || !Number.isFinite(actual) || Math.abs(actual - expected) > 1.25) {
+                  event.target.seekTo?.(expected, true)
+                }
+                manualPauseRef.current = false
+              }
+              setAutoplayBlocked(false)
+            }
           },
           onAutoplayBlocked: () => {
             setAutoplayBlocked(true)
@@ -270,6 +308,7 @@ export default function App() {
   useEffect(() => {
     if (loadedVideo.current !== room.current?.videoId) {
       localPausedRef.current = false
+      manualPauseRef.current = false
       setLocalPaused(false)
     }
     applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo)
@@ -314,6 +353,18 @@ export default function App() {
   useEffect(() => {
     player.current?.setVolume?.(volume)
   }, [volume])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const instance = player.current
+      if (!instance || !playerReady.current) return
+      const time = instance.getCurrentTime?.()
+      const duration = instance.getDuration?.()
+      if (typeof time === 'number' && Number.isFinite(time)) setPlaybackTime(time)
+      if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) setVideoDuration(duration)
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const search = async (event: FormEvent) => {
     event.preventDefault()
@@ -470,6 +521,18 @@ export default function App() {
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
+            <button
+              className="fullscreen-button"
+              type="button"
+              aria-label="전체 화면"
+              title="전체 화면"
+              onClick={() => {
+                const frame = playerHost.current?.parentElement
+                if (!frame) return
+                if (document.fullscreenElement) void document.exitFullscreen()
+                else void frame.requestFullscreen?.()
+              }}
+            >⛶</button>
             {room.current && autoplayBlocked && (
               <button
                 className="player-start-overlay"
@@ -497,10 +560,32 @@ export default function App() {
               {room.current?.channel || '함께 들을 노래를 기다리고 있어요'}
             </div>
             <div className="playback-meta">
-              <span>{room.paused ? '일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span>
+              <span>{room.paused ? '전체 일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span>
               <span>·</span>
               <span>{room.queue.length}곡 대기</span>
             </div>
+            {room.current && (
+              <>
+                <div className="track-progress" aria-label="노래 재생 진행률">
+                  <div className="track-progress-top">
+                    <span>{formatTime(playbackTime)}</span>
+                    <span>{formatTime(videoDuration)}</span>
+                  </div>
+                  <div className="track-progress-rail">
+                    <div
+                      className="track-progress-fill"
+                      style={{ width: videoDuration > 0 ? Math.min(100, (playbackTime / videoDuration) * 100) + '%' : '0%' }}
+                    />
+                  </div>
+                </div>
+                <div className="track-added-by">
+                  {room.current.addedByAvatar
+                    ? <img src={room.current.addedByAvatar} alt="" />
+                    : <span className="added-by-fallback">{(room.current.addedByName || '?').slice(0, 1).toUpperCase()}</span>}
+                  <span><small>이 노래를 추가한 사람</small><strong>{room.current.addedByName || '알 수 없음'}</strong></span>
+                </div>
+              </>
+            )}
 
             {room.current && (
               <div className="local-player-controls">
@@ -522,9 +607,9 @@ export default function App() {
                       instance.pauseVideo?.()
                     }
                   }}
-                  aria-label={localPaused ? '내 기기에서 재생' : '내 기기에서 일시정지'}
+                  aria-label={localPaused ? '재생' : '일시정지'}
                 >
-                  {localPaused ? '▶ 내 기기에서 재생' : 'Ⅱ 내 기기에서 일시정지'}
+                  {localPaused ? '▶ 재생' : 'Ⅱ 일시정지'}
                 </button>
                 <label className="volume-control">
                   <span>볼륨</span>
@@ -558,7 +643,7 @@ export default function App() {
               <div className="admin-playback">
                 {room.current && (
                   <button onClick={() => admin({ action: room.paused ? 'resume' : 'pause' })}>
-                    {room.paused ? '다시 재생' : '일시정지'}
+                    {room.paused ? '다시 재생' : '전체 일시정지'}
                   </button>
                 )}
                 <button onClick={() => admin({ action: 'skip' })}>다음 곡</button>
@@ -663,7 +748,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="chat-messages">
+            <div className="chat-messages" ref={chatMessagesRef}>
               {room.chat.map((message) => (
                 <div
                   className={[
