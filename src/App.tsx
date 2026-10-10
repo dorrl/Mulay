@@ -159,6 +159,8 @@ export default function App() {
   const [playbackTime, setPlaybackTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const localPausedRef = useRef(false)
+  const manualPauseRef = useRef(false)
+  const chatMessagesRef = useRef<HTMLDivElement>(null)
   const socket = useRef<Socket | null>(null)
   const player = useRef<Player | null>(null)
   const playerReady = useRef(false)
@@ -167,6 +169,11 @@ export default function App() {
   const awaitingSync = useRef(false)
   const currentRoom = useRef(room)
   currentRoom.current = room
+
+  useEffect(() => {
+    const messages = chatMessagesRef.current
+    if (messages) messages.scrollTop = messages.scrollHeight
+  }, [room.chat])
 
   useEffect(() => {
     fetch('/server/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
@@ -236,12 +243,24 @@ export default function App() {
               }
             }
 
-            // A client recovering from a local pause must not change the shared timeline.
-            if (event.data === states.PLAYING && currentRoom.current.paused) {
-              event.target.seekTo?.(position(currentRoom.current), true)
-              event.target.pauseVideo?.()
+            // Track native YouTube pauses so resuming returns to the shared timeline.
+            if (event.data === states.PAUSED && !currentRoom.current.paused && !localPausedRef.current) {
+              manualPauseRef.current = true
             }
-            if (event.data === states.PLAYING) setAutoplayBlocked(false)
+            if (event.data === states.PLAYING) {
+              if (currentRoom.current.paused) {
+                event.target.seekTo?.(position(currentRoom.current), true)
+                event.target.pauseVideo?.()
+              } else if (manualPauseRef.current && !localPausedRef.current) {
+                const expected = position(currentRoom.current)
+                const actual = event.target.getCurrentTime?.()
+                if (actual === undefined || !Number.isFinite(actual) || Math.abs(actual - expected) > 1.25) {
+                  event.target.seekTo?.(expected, true)
+                }
+                manualPauseRef.current = false
+              }
+              setAutoplayBlocked(false)
+            }
           },
           onAutoplayBlocked: () => {
             setAutoplayBlocked(true)
@@ -281,6 +300,7 @@ export default function App() {
   useEffect(() => {
     if (loadedVideo.current !== room.current?.videoId) {
       localPausedRef.current = false
+      manualPauseRef.current = false
       setLocalPaused(false)
     }
     applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo)
@@ -720,7 +740,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="chat-messages">
+            <div className="chat-messages" ref={chatMessagesRef}>
               {room.chat.map((message) => (
                 <div
                   className={[
