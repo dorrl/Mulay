@@ -34,6 +34,16 @@ const io = new Server(httpServer, {
 
 type User = { id: string; name: string; email: string; avatar: string; admin: boolean }
 const connectedUsers = new Map<string, User>()
+const socketEventTimes = new Map<string, number[]>()
+const allowSocketEvent = (userId: string, event: string, limit: number, windowMs: number) => {
+  const key = userId + ':' + event
+  const now = Date.now()
+  const recent = (socketEventTimes.get(key) || []).filter((time) => now - time < windowMs)
+  if (recent.length >= limit) { socketEventTimes.set(key, recent); return false }
+  recent.push(now)
+  socketEventTimes.set(key, recent)
+  return true
+}
 type Track = { id: string; videoId: string; title: string; channel: string; thumbnail: string; addedBy: string; addedAt: number; votes: Record<string, 1 | -1> }
 type ChatMessage = { id: string; userId: string; name: string; avatar: string; text: string; at: number }
 type RoomState = {
@@ -217,6 +227,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('queue:add', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+    if (!allowSocketEvent(user.id, 'queue:add', 10, 60_000)) return ack?.({ ok: false, error: '영상 추가 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' })
     const parsed = addSchema.safeParse(raw)
     if (!parsed.success) return ack?.({ ok: false, error: '영상 정보가 올바르지 않습니다.' })
     const now = Date.now()
@@ -240,6 +251,7 @@ io.on('connection', (socket) => {
     ack?.({ ok: true })
   })
   socket.on('queue:vote', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+    if (!allowSocketEvent(user.id, 'queue:vote', 60, 60_000)) return ack?.({ ok: false, error: '투표 요청이 너무 많습니다.' })
     const schema = z.object({ trackId: z.string().uuid(), vote: z.union([z.literal(1), z.literal(-1), z.literal(0)]) })
     const parsed = schema.safeParse(raw)
     if (!parsed.success) return ack?.({ ok: false, error: '투표 값이 올바르지 않습니다.' })
@@ -252,6 +264,7 @@ io.on('connection', (socket) => {
     ack?.({ ok: true })
   })
   socket.on('chat:send', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+    if (!allowSocketEvent(user.id, 'chat:send', 6, 10_000)) return ack?.({ ok: false, error: '채팅을 너무 빠르게 보내고 있어요.' })
     const parsed = chatSchema.safeParse(raw)
     if (!parsed.success) return ack?.({ ok: false, error: '채팅은 1~500자로 입력하세요.' })
     const message: ChatMessage = { id: randomUUID(), userId: user.id, name: user.name, avatar: user.avatar, text: parsed.data, at: Date.now() }
@@ -274,6 +287,7 @@ io.on('connection', (socket) => {
     broadcastState()
   })
   socket.on('admin:command', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+    if (!allowSocketEvent(user.id, 'admin:command', 20, 60_000)) return ack?.({ ok: false, error: '관리자 명령 요청이 너무 많습니다.' })
     if (!user.admin) return ack?.({ ok: false, error: '관리자 권한이 필요합니다.' })
     const parsed = commandSchema.safeParse(raw)
     if (!parsed.success) return ack?.({ ok: false, error: '관리자 명령이 올바르지 않습니다.' })
