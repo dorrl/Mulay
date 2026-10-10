@@ -121,6 +121,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/auth/google/callback',
     scope: ['profile', 'email'],
+    state: true,
   }, (_accessToken, _refreshToken, profile, done) => {
     const email = profile.emails?.[0]?.value || ''
     const user: User = {
@@ -153,7 +154,7 @@ app.get('/auth/google', (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) return res.status(503).send('Google OAuth가 설정되지 않았습니다. .env 파일을 확인하세요.')
   passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next)
 })
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/?login=failed' }), (_req, res) => res.redirect('/'))
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/?login=failed' }), (_req, res) => res.redirect(WEB_ORIGIN))
 app.post('/auth/logout', (req, res, next) => req.logout((error) => {
   if (error) return next(error)
   req.session.destroy((destroyError) => {
