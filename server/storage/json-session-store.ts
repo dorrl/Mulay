@@ -9,7 +9,7 @@ export class JsonSessionStore extends session.Store {
   private writes: Promise<void> = Promise.resolve()
   constructor() { super(); this.loaded = this.load() }
 
-  private async load() {
+  public async load() {
     await mkdir(DATA_DIR, { recursive: true })
     try {
       const parsed = JSON.parse(await readFile(SESSION_FILE, 'utf8')) as Record<string, StoredSession>
