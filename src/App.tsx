@@ -530,8 +530,19 @@ export default function App() {
               onClick={() => {
                 const frame = playerHost.current?.parentElement
                 if (!frame) return
-                if (document.fullscreenElement) void document.exitFullscreen()
-                else void frame.requestFullscreen?.()
+                if (document.fullscreenElement) {
+                  void document.exitFullscreen().catch(() => {
+                    setNotice('전체 화면을 종료하지 못했어요.')
+                  })
+                  return
+                }
+                if (!frame.requestFullscreen) {
+                  setNotice('이 브라우저에서는 전체 화면을 지원하지 않아요.')
+                  return
+                }
+                void frame.requestFullscreen().catch(() => {
+                  setNotice('전체 화면이 차단됐어요. 브라우저 권한을 확인해 주세요.')
+                })
               }}
             >⛶</button>
             {room.current && autoplayBlocked && (
