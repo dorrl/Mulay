@@ -128,6 +128,7 @@ const applyRoomToPlayer = (
   if (loadedVideo.current !== room.current.videoId) {
     if (typeof player.loadVideoById !== 'function') return
     loadedVideo.current = room.current.videoId
+    pendingVideoSync.current = room.current.videoId
     player.loadVideoById({
       videoId: room.current.videoId,
       startSeconds: targetPosition,
@@ -166,6 +167,7 @@ export default function App() {
   const playerReady = useRef(false)
   const playerHost = useRef<HTMLDivElement>(null)
   const loadedVideo = useRef<string | null>(null)
+  const pendingVideoSync = useRef<string | null>(null)
   const awaitingSync = useRef(false)
   const currentRoom = useRef(room)
   currentRoom.current = room
@@ -248,6 +250,12 @@ export default function App() {
               manualPauseRef.current = true
             }
             if (event.data === states.PLAYING) {
+              // Video loading can take time; seek again once playback actually starts.
+              if (pendingVideoSync.current === currentRoom.current.current?.videoId) {
+                event.target.seekTo?.(position(currentRoom.current), true)
+                pendingVideoSync.current = null
+                if (currentRoom.current.paused) event.target.pauseVideo?.()
+              }
               if (currentRoom.current.paused) {
                 event.target.seekTo?.(position(currentRoom.current), true)
                 event.target.pauseVideo?.()
