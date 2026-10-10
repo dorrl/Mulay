@@ -528,7 +528,7 @@ export default function App() {
               aria-label="전체 화면"
               title="전체 화면"
               onClick={() => {
-                const frame = playerHost.current?.parentElement?.querySelector('iframe')
+                const frame = playerHost.current?.parentElement
                 if (!frame) return
                 if (document.fullscreenElement) {
                   void document.exitFullscreen().catch(() => {
