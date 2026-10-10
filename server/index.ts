@@ -172,7 +172,7 @@ app.get('/api/search', async (req, res) => {
     url.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '8', q: query.data, key: process.env.YOUTUBE_API_KEY, videoEmbeddable: 'true', safeSearch: 'moderate' }).toString()
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) })
     if (!response.ok) return res.status(502).json({ error: 'YouTube 검색에 실패했습니다.' })
-    const body = await response.json() as { items?: { id: { videoId?: string }; snippet: { title: string; channelTitle: string; thumbnails?: { medium?: { url?: string }; high?: { url?: string } } }[] }
+    const body = await response.json() as { items?: { id: { videoId?: string }; snippet: { title: string; channelTitle: string; thumbnails?: { medium?: { url?: string }; high?: { url?: string } } } }[] }
     const items = (body.items ?? []).filter((item) => item.id.videoId).map((item) => ({
       videoId: item.id.videoId!, title: item.snippet.title, channel: item.snippet.channelTitle,
       thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.high?.url || '',
