@@ -56,6 +56,8 @@ type Player = {
   getPlaybackRate?: () => number
   setPlaybackRate?: (rate: number) => void
   getPlayerState?: () => number
+  getVolume?: () => number
+  setVolume?: (volume: number) => void
   playVideo?: () => void
   pauseVideo?: () => void
   stopVideo?: () => void
@@ -127,7 +129,6 @@ const applyRoomToPlayer = (
 
   player.seekTo?.(targetPosition, true)
   if (room.paused) player.pauseVideo?.()
-  else player.playVideo?.()
 }
 
 export default function App() {
@@ -144,6 +145,9 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+  const [localPaused, setLocalPaused] = useState(false)
+  const [volume, setVolume] = useState(70)
+  const localPausedRef = useRef(false)
   const socket = useRef<Socket | null>(null)
   const player = useRef<Player | null>(null)
   const playerReady = useRef(false)
@@ -205,6 +209,7 @@ export default function App() {
             // The constructor's initial reference may not expose methods until ready.
             player.current = event.target
             playerReady.current = true
+            event.target.setVolume?.(volume)
             applyRoomToPlayer(player.current, true, currentRoom.current, loadedVideo)
           },
           onStateChange: (event: PlayerEvent) => {
@@ -263,12 +268,19 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (loadedVideo.current !== room.current?.videoId) {
+      localPausedRef.current = false
+      setLocalPaused(false)
+    }
     applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo)
+    if (!room.paused && !localPausedRef.current && room.current) {
+      player.current?.playVideo?.()
+    }
   }, [room.current?.videoId, room.startedAt, room.paused, room.pausedAt])
 
   useEffect(() => {
-    // YouTube's native controls are disabled. Keep playback server-authoritative,
-    // correcting local seeking or speed changes without broadcasting them.
+    // Local pause is allowed. When the user resumes, the button seeks to the
+    // shared timeline first; this timer never auto-resumes a locally paused player.
     const timer = window.setInterval(() => {
       const instance = player.current
       const current = currentRoom.current.current
@@ -280,11 +292,9 @@ export default function App() {
         if (playerState !== states?.PAUSED) instance.pauseVideo?.()
         return
       }
+      if (localPausedRef.current) return
       if (playerState === states?.BUFFERING || playerState === states?.ENDED) return
-      if (playerState !== states?.PLAYING) {
-        instance.playVideo?.()
-        return
-      }
+      if (playerState !== states?.PLAYING) return
 
       if (instance.getPlaybackRate?.() !== 1) instance.setPlaybackRate?.(1)
       const actualPosition = instance.getCurrentTime?.()
@@ -300,6 +310,10 @@ export default function App() {
 
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    player.current?.setVolume?.(volume)
+  }, [volume])
 
   const search = async (event: FormEvent) => {
     event.preventDefault()
@@ -490,6 +504,47 @@ export default function App() {
               <span>·</span>
               <span>{room.queue.length}곡 대기</span>
             </div>
+
+            {room.current && (
+              <div className="local-player-controls">
+                <button
+                  className="local-play-toggle"
+                  type="button"
+                  disabled={room.paused}
+                  onClick={() => {
+                    const instance = player.current
+                    if (!instance) return
+                    if (localPausedRef.current) {
+                      instance.seekTo?.(position(currentRoom.current), true)
+                      localPausedRef.current = false
+                      setLocalPaused(false)
+                      instance.playVideo?.()
+                    } else {
+                      localPausedRef.current = true
+                      setLocalPaused(true)
+                      instance.pauseVideo?.()
+                    }
+                  }}
+                  aria-label={localPaused ? '내 기기에서 재생' : '내 기기에서 일시정지'}
+                >
+                  {localPaused ? '▶ 내 기기에서 재생' : 'Ⅱ 내 기기에서 일시정지'}
+                </button>
+                <label className="volume-control">
+                  <span>볼륨</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={volume}
+                    onChange={(event) => setVolume(Number(event.target.value))}
+                    aria-label="볼륨 조절, 방향키로 5퍼센트씩 조절"
+                    title="포커스 후 ← / → 방향키로 5%씩 조절"
+                  />
+                  <output>{volume}%</output>
+                </label>
+              </div>
+            )}
 
             {room.current && (
               <div className="current-votes">

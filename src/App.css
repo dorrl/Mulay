@@ -347,3 +347,57 @@ main {
 .chat-message.is-own .chat-copy p {
   color: #d0d0d8;
 }
+
+
+/* Local playback controls: these never change the shared room state. */
+.local-player-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.local-play-toggle {
+  flex: 0 0 auto;
+  border: 1px solid #c6f27745;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #c6f2770c;
+  color: #d6f7a3;
+  font-size: 10px;
+  font-weight: 600;
+}
+.local-play-toggle:hover:not(:disabled) {
+  background: #c6f27718;
+}
+.local-play-toggle:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.volume-control {
+  display: flex;
+  flex: 1 1 150px;
+  min-width: 130px;
+  align-items: center;
+  gap: 9px;
+  color: #a7a6b2;
+  font-size: 10px;
+}
+.volume-control input[type="range"] {
+  min-width: 50px;
+  width: 100%;
+  flex: 1;
+  accent-color: #c6f277;
+  cursor: pointer;
+}
+.volume-control input[type="range"]:focus-visible {
+  outline: 2px solid #c6f277;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.volume-control output {
+  width: 35px;
+  color: #d6f7a3;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
