@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import './App.css'
 
@@ -128,7 +128,7 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [room.startedAt, room.paused, room.pausedAt])
 
-  const search = async (event: React.FormEvent) => {
+  const search = async (event: FormEvent) => {
     event.preventDefault()
     if (!query.trim()) return
     setSearching(true); setSearchError(''); setResults([])
