@@ -297,3 +297,53 @@ main {
 .player-start-overlay:hover {
   filter: brightness(1.08);
 }
+
+
+/* Chat identity: administrators and the current user's own messages stand out. */
+.chat-message {
+  padding: 7px 8px;
+  margin: -7px -8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: background .18s ease, border-color .18s ease;
+}
+.chat-message.is-admin {
+  background: linear-gradient(100deg, #b89aff12, #b89aff04);
+  border-color: #b89aff20;
+}
+.chat-message.is-admin .chat-copy strong {
+  color: #cbb6ff;
+}
+.chat-role-badge,
+.chat-own-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.chat-role-badge {
+  color: #d5c4ff;
+  background: #b89aff1c;
+  border: 1px solid #b89aff45;
+}
+.chat-own-badge {
+  color: #d9f7a5;
+  background: #c6f27718;
+  border: 1px solid #c6f27735;
+}
+.chat-message.is-own {
+  background: #c6f2770c;
+  border-color: #c6f27735;
+  box-shadow: inset 2px 0 #c6f277;
+}
+.chat-message.is-own .chat-copy > div > strong {
+  color: #d8f5a6;
+}
+.chat-message.is-own .chat-copy p {
+  color: #d0d0d8;
+}

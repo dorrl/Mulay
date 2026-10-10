@@ -21,7 +21,7 @@ export const promoteNext = (io: Server) => {
   state.pausedAt = null; state.paused = false; void persist(); broadcastState(io)
 }
 export const getUser = (socket: Socket): User | null => (socket.request as typeof socket.request & { user?: User }).user ?? null
-export const publicChatMessage = (message: ChatMessage) => {
+export const publicChatMessage = (message: ChatMessage, senderSocketId?: string) => {
   const { userId: _userId, ...publicMessage } = message
-  return publicMessage
+  return { ...publicMessage, ...(senderSocketId ? { senderSocketId } : {}) }
 }

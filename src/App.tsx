@@ -22,11 +22,13 @@ type Track = {
 
 type Message = {
   id: string
-  userId: string
+  userId?: string
   name: string
   avatar: string
   text: string
   at: number
+  admin?: boolean
+  senderSocketId?: string
 }
 
 type Room = {
@@ -614,7 +616,16 @@ export default function App() {
 
             <div className="chat-messages">
               {room.chat.map((message) => (
-                <div className="chat-message" key={message.id}>
+                <div
+                  className={[
+                    'chat-message',
+                    message.admin ? 'is-admin' : '',
+                    message.senderSocketId && message.senderSocketId === socket.current?.id
+                      ? 'is-own'
+                      : '',
+                  ].filter(Boolean).join(' ')}
+                  key={message.id}
+                >
                   {message.avatar ? (
                     <img src={message.avatar} alt="" />
                   ) : (
@@ -623,6 +634,10 @@ export default function App() {
                   <div className="chat-copy">
                     <div>
                       <strong>{message.name}</strong>
+                      {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
+                      {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                        <span className="chat-own-badge">나</span>
+                      )}
                       <time>
                         {new Date(message.at).toLocaleTimeString('ko-KR', {
                           hour: '2-digit',
