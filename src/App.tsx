@@ -221,9 +221,9 @@ export default function App() {
           playsinline: 1,
           rel: 0,
           origin: window.location.origin,
-          controls: 1,
+          controls: 0,
           disablekb: 1,
-          fs: 1,
+          fs: 0,
         },
         events: {
           onReady: (event: { target: Player }) => {
@@ -522,6 +522,29 @@ export default function App() {
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
+            <button
+              className="fullscreen-button"
+              type="button"
+              aria-label="전체 화면"
+              title="전체 화면"
+              onClick={() => {
+                const frame = playerHost.current?.parentElement
+                if (!frame) return
+                if (document.fullscreenElement) {
+                  void document.exitFullscreen().catch(() => {
+                    setNotice('전체 화면을 종료하지 못했어요.')
+                  })
+                  return
+                }
+                if (!frame.requestFullscreen) {
+                  setNotice('이 브라우저에서는 전체 화면을 지원하지 않아요.')
+                  return
+                }
+                void frame.requestFullscreen().catch(() => {
+                  setNotice('전체 화면이 차단됐어요. 브라우저 권한을 확인해 주세요.')
+                })
+              }}
+            >⛶</button>
             {room.current && autoplayBlocked && (
               <button
                 className="player-start-overlay"
