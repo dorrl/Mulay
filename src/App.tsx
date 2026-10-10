@@ -2,16 +2,134 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import './App.css'
 
-type User = { id: string; name: string; avatar: string; admin: boolean }
-type Track = { id: string; videoId: string; title: string; channel: string; thumbnail: string; durationSeconds?: number; likes: number; dislikes: number }
-type Message = { id: string; userId: string; name: string; avatar: string; text: string; at: number }
-type Room = { current: Track | null; queue: Track[]; startedAt: number | null; pausedAt: number | null; paused: boolean; announcement: { id: string; text: string; at: number } | null; chat: Message[] }
-type Result = { videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number }
-type Player = { loadVideoById: (arg: { videoId: string; startSeconds?: number }) => void; seekTo: (seconds: number, ahead: boolean) => void; getCurrentTime: () => number; stopVideo: () => void; destroy: () => void }
-type YTApi = { Player: new (element: HTMLElement, options: Record<string, unknown>) => Player; PlayerState: { PLAYING: number; BUFFERING: number; ENDED: number } }
-declare global { interface Window { YT?: YTApi; onYouTubeIframeAPIReady?: () => void } }
-const blank: Room = { current: null, queue: [], startedAt: null, pausedAt: null, paused: false, announcement: null, chat: [] }
-const position = (room: Room) => room.paused && room.pausedAt ? room.pausedAt : room.startedAt ? Math.max(0, (Date.now() - room.startedAt) / 1000) : 0
+type User = {
+  id: string
+  name: string
+  avatar: string
+  admin: boolean
+}
+
+type Track = {
+  id: string
+  videoId: string
+  title: string
+  channel: string
+  thumbnail: string
+  durationSeconds?: number
+  likes: number
+  dislikes: number
+}
+
+type Message = {
+  id: string
+  userId?: string
+  name: string
+  avatar: string
+  text: string
+  at: number
+  admin?: boolean
+  senderSocketId?: string
+}
+
+type Room = {
+  current: Track | null
+  queue: Track[]
+  startedAt: number | null
+  pausedAt: number | null
+  paused: boolean
+  announcement: { id: string; text: string; at: number } | null
+  chat: Message[]
+}
+
+type Result = {
+  videoId: string
+  title: string
+  channel: string
+  thumbnail: string
+  durationSeconds: number
+}
+
+type Player = {
+  loadVideoById?: (arg: { videoId: string; startSeconds?: number }) => void
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void
+  getCurrentTime?: () => number
+  getPlaybackRate?: () => number
+  setPlaybackRate?: (rate: number) => void
+  getPlayerState?: () => number
+  getVolume?: () => number
+  setVolume?: (volume: number) => void
+  playVideo?: () => void
+  pauseVideo?: () => void
+  stopVideo?: () => void
+  destroy?: () => void
+}
+
+type PlayerEvent = { data: number; target: Player }
+
+type YTApi = {
+  Player: new (element: HTMLElement, options: Record<string, unknown>) => Player
+  PlayerState: {
+    UNSTARTED: number
+    ENDED: number
+    PLAYING: number
+    PAUSED: number
+    BUFFERING: number
+    CUED: number
+  }
+}
+
+declare global {
+  interface Window {
+    YT?: YTApi
+    onYouTubeIframeAPIReady?: () => void
+  }
+}
+
+const blank: Room = {
+  current: null,
+  queue: [],
+  startedAt: null,
+  pausedAt: null,
+  paused: false,
+  announcement: null,
+  chat: [],
+}
+
+const position = (room: Room): number => {
+  if (room.paused && room.pausedAt !== null) return room.pausedAt
+  if (room.startedAt === null) return 0
+  return Math.max(0, (Date.now() - room.startedAt) / 1000)
+}
+
+const applyRoomToPlayer = (
+  player: Player | null,
+  ready: boolean,
+  room: Room,
+  loadedVideo: { current: string | null },
+): void => {
+  if (!player || !ready) return
+
+  if (!room.current) {
+    loadedVideo.current = null
+    player.stopVideo?.()
+    return
+  }
+
+  const targetPosition = position(room)
+  if (loadedVideo.current !== room.current.videoId) {
+    if (typeof player.loadVideoById !== 'function') return
+    loadedVideo.current = room.current.videoId
+    player.loadVideoById({
+      videoId: room.current.videoId,
+      startSeconds: targetPosition,
+    })
+    if (room.paused) player.pauseVideo?.()
+    return
+  }
+
+  player.seekTo?.(targetPosition, true)
+  if (room.paused) player.pauseVideo?.()
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -26,10 +144,14 @@ export default function App() {
   const [activeUsers, setActiveUsers] = useState<User[]>([])
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(false)
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+  const [localPaused, setLocalPaused] = useState(false)
+  const [volume, setVolume] = useState(70)
+  const localPausedRef = useRef(false)
   const socket = useRef<Socket | null>(null)
   const player = useRef<Player | null>(null)
+  const playerReady = useRef(false)
   const playerHost = useRef<HTMLDivElement>(null)
-  const previousPlayerState = useRef<number | null>(null)
   const loadedVideo = useRef<string | null>(null)
   const awaitingSync = useRef(false)
   const currentRoom = useRef(room)
@@ -46,7 +168,9 @@ export default function App() {
       setRoom(next)
       if (awaitingSync.current) {
         awaitingSync.current = false
-        if (next.current && loadedVideo.current === next.current.videoId) window.setTimeout(() => { try { player.current?.seekTo(position(next), true) } catch { /* Player may still be initializing. */ } }, 500)
+        window.setTimeout(() => {
+          applyRoomToPlayer(player.current, playerReady.current, next, loadedVideo)
+        }, 500)
       }
     })
     s.on('chat:message', (m: Message) => setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) })))
@@ -64,115 +188,618 @@ export default function App() {
   }, [user?.admin])
 
   useEffect(() => {
-    if (!window.YT) {
+    const initializePlayer = () => {
+      if (!window.YT?.Player || !playerHost.current || player.current) return
+
+      player.current = new window.YT.Player(playerHost.current, {
+        width: '100%',
+        height: '100%',
+        videoId: '',
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          rel: 0,
+          origin: window.location.origin,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+        },
+        events: {
+          onReady: (event: { target: Player }) => {
+            // The constructor's initial reference may not expose methods until ready.
+            player.current = event.target
+            playerReady.current = true
+            event.target.setVolume?.(volume)
+            applyRoomToPlayer(player.current, true, currentRoom.current, loadedVideo)
+          },
+          onStateChange: (event: PlayerEvent) => {
+            const states = window.YT?.PlayerState
+            if (!states) return
+
+            if (event.data === states.ENDED) {
+              const endedTrack = currentRoom.current.current
+              if (endedTrack) {
+                socket.current?.emit('playback:ended', {
+                  videoId: endedTrack.videoId,
+                })
+              }
+            }
+
+            // A client recovering from a local pause must not change the shared timeline.
+            if (event.data === states.PLAYING && currentRoom.current.paused) {
+              event.target.seekTo?.(position(currentRoom.current), true)
+              event.target.pauseVideo?.()
+            }
+            if (event.data === states.PLAYING) setAutoplayBlocked(false)
+          },
+          onAutoplayBlocked: () => {
+            setAutoplayBlocked(true)
+            setNotice('자동 재생이 차단됐어요. 아래 재생 버튼을 눌러주세요.')
+          },
+          onError: () => {
+            setNotice('이 영상은 재생할 수 없습니다. 다른 영상을 추가해 주세요.')
+          },
+        },
+      })
+    }
+
+    if (window.YT?.Player) {
+      initializePlayer()
+    } else {
       if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
         const script = document.createElement('script')
         script.src = 'https://www.youtube.com/iframe_api'
         script.async = true
         document.head.appendChild(script)
       }
+
+      const previousCallback = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        previousCallback?.()
+        initializePlayer()
+      }
     }
-    const init = () => {
-      if (!window.YT || !playerHost.current || player.current) return
-      player.current = new window.YT.Player(playerHost.current, {
-        width: '100%', height: '100%', videoId: '',
-        playerVars: { autoplay: 1, playsinline: 1, rel: 0, origin: window.location.origin },
-        events: {
-          onReady: () => {
-            loadedVideo.current = null
-            const current = currentRoom.current.current
-            if (current && player.current) {
-              loadedVideo.current = current.videoId
-              player.current.loadVideoById({ videoId: current.videoId, startSeconds: position(currentRoom.current) })
-            }
-          },
-          onStateChange: (event: { data: number; target: Player }) => {
-            const states = window.YT?.PlayerState
-            if (states && event.data === states.ENDED) {
-              const ended = currentRoom.current.current
-              if (ended) socket.current?.emit('playback:ended', { videoId: ended.videoId })
-            }
-            if (states && event.data === states.PLAYING && previousPlayerState.current === states.BUFFERING) {
-              const current = currentRoom.current.current
-              if (current) socket.current?.emit('playback:ad-resync', { videoId: current.videoId, currentTime: event.target.getCurrentTime() })
-            }
-            previousPlayerState.current = event.data
-          },
-          onAutoplayBlocked: () => setNotice('자동 재생이 차단됐어요. 플레이어의 재생 버튼을 눌러주세요.'),
-          onError: () => setNotice('이 영상은 재생할 수 없습니다. 다른 영상을 추가해 주세요.'),
-        },
-      })
+
+    return () => {
+      playerReady.current = false
+      player.current?.destroy?.()
+      player.current = null
     }
-    if (window.YT?.Player) init()
-    else {
-      const previous = window.onYouTubeIframeAPIReady
-      window.onYouTubeIframeAPIReady = () => { previous?.(); init() }
-    }
-    return () => { player.current?.destroy(); player.current = null }
   }, [])
 
   useEffect(() => {
-    if (!player.current) return
-    if (!room.current) { loadedVideo.current = null; player.current.stopVideo(); return }
-    if (loadedVideo.current === room.current.videoId) return
-    loadedVideo.current = room.current.videoId
-    player.current.loadVideoById({ videoId: room.current.videoId, startSeconds: position(room) })
-  }, [room.current?.videoId])
+    if (loadedVideo.current !== room.current?.videoId) {
+      localPausedRef.current = false
+      setLocalPaused(false)
+    }
+    applyRoomToPlayer(player.current, playerReady.current, room, loadedVideo)
+    if (!room.paused && !localPausedRef.current && room.current) {
+      player.current?.playVideo?.()
+    }
+  }, [room.current?.videoId, room.startedAt, room.paused, room.pausedAt])
 
   useEffect(() => {
-    if (!player.current || !room.current || !room.startedAt) return
-    const expected = position(room)
-    const timer = window.setTimeout(() => {
-      try { const actual = player.current?.getCurrentTime(); if (actual !== undefined && Number.isFinite(actual) && Math.abs(actual - expected) > 2.5) player.current?.seekTo(expected, true) } catch { /* Player not ready yet. */ }
-    }, 600)
-    return () => window.clearTimeout(timer)
-  }, [room.startedAt, room.paused, room.pausedAt])
+    // Local pause is allowed. When the user resumes, the button seeks to the
+    // shared timeline first; this timer never auto-resumes a locally paused player.
+    const timer = window.setInterval(() => {
+      const instance = player.current
+      const current = currentRoom.current.current
+      if (!instance || !playerReady.current || !current) return
+
+      const states = window.YT?.PlayerState
+      const playerState = instance.getPlayerState?.()
+      if (currentRoom.current.paused) {
+        if (playerState !== states?.PAUSED) instance.pauseVideo?.()
+        return
+      }
+      if (localPausedRef.current) return
+      if (playerState === states?.BUFFERING || playerState === states?.ENDED) return
+      if (playerState !== states?.PLAYING) return
+
+      if (instance.getPlaybackRate?.() !== 1) instance.setPlaybackRate?.(1)
+      const actualPosition = instance.getCurrentTime?.()
+      const expectedPosition = position(currentRoom.current)
+      if (
+        actualPosition !== undefined &&
+        Number.isFinite(actualPosition) &&
+        Math.abs(actualPosition - expectedPosition) > 2.5
+      ) {
+        instance.seekTo?.(expectedPosition, true)
+      }
+    }, 5000)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    player.current?.setVolume?.(volume)
+  }, [volume])
 
   const search = async (event: FormEvent) => {
     event.preventDefault()
-    if (!query.trim()) return
-    setSearching(true); setSearchError(''); setResults([])
+    const searchTerm = query.trim()
+    if (!searchTerm) return
+
+    setSearching(true)
+    setSearchError('')
+    setResults([])
+
     try {
-      const response = await fetch('/server/api/search?q=' + encodeURIComponent(query.trim()))
+      const response = await fetch(
+        '/server/api/search?q=' + encodeURIComponent(searchTerm),
+      )
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || '검색에 실패했습니다.')
+
       setResults(data.items)
       if (!data.items.length) setSearchError('검색 결과가 없습니다.')
-    } catch (e) { setSearchError(e instanceof Error ? e.message : '검색에 실패했습니다.') }
-    finally { setSearching(false) }
+    } catch (error) {
+      setSearchError(
+        error instanceof Error ? error.message : '검색에 실패했습니다.',
+      )
+    } finally {
+      setSearching(false)
+    }
   }
+
   const add = (track: Result) => {
-    if (track.durationSeconds > 600) { setNotice('10분을 초과하는 영상은 추가할 수 없어요.'); return }
-    if (!user) { setNotice('영상을 추가하려면 Google 로그인이 필요해요.'); return }
-    socket.current?.emit('queue:add', track, (r: { ok: boolean; error?: string }) => {
-      setNotice(r.ok ? '대기열에 추가했어요.' : r.error || '추가하지 못했어요.')
-      if (r.ok) setResults((old) => old.filter((x) => x.videoId !== track.videoId))
-    })
+    if (track.durationSeconds > 600) {
+      setNotice('10분을 초과하는 영상은 추가할 수 없어요.')
+      return
+    }
+    if (!user) {
+      setNotice('영상을 추가하려면 Google 로그인이 필요해요.')
+      return
+    }
+
+    socket.current?.emit(
+      'queue:add',
+      track,
+      (result: { ok: boolean; error?: string }) => {
+        setNotice(
+          result.ok ? '대기열에 추가했어요.' : result.error || '추가하지 못했어요.',
+        )
+        if (result.ok) {
+          setResults((oldResults) =>
+            oldResults.filter((item) => item.videoId !== track.videoId),
+          )
+        }
+      },
+    )
   }
+
   const vote = (track: Track, value: 1 | -1) => {
-    if (!user) { setNotice('투표하려면 로그인이 필요해요.'); return }
-    socket.current?.emit('queue:vote', { trackId: track.id, vote: value }, (r: { ok: boolean; error?: string }) => { if (!r.ok) setNotice(r.error || '투표 실패') })
+    if (!user) {
+      setNotice('투표하려면 로그인이 필요해요.')
+      return
+    }
+
+    socket.current?.emit(
+      'queue:vote',
+      { trackId: track.id, vote: value },
+      (result: { ok: boolean; error?: string }) => {
+        if (!result.ok) setNotice(result.error || '투표 실패')
+      },
+    )
   }
-  const sendChat = (event: React.FormEvent) => {
+
+  const sendChat = (event: FormEvent) => {
     event.preventDefault()
     if (!chatInput.trim()) return
-    socket.current?.emit('chat:send', chatInput, (r: { ok: boolean; error?: string }) => { if (r.ok) setChatInput(''); else setNotice(r.error || '채팅 실패') })
-  }
-  const admin = (command: Record<string, string>) => socket.current?.emit('admin:command', command, (r: { ok: boolean; error?: string }) => setNotice(r.ok ? '관리자 명령을 실행했어요.' : r.error || '명령 실패'))
-  const logout = async () => { await fetch('/server/auth/logout', { method: 'POST', credentials: 'include' }); setUser(null); window.location.reload() }
 
-  return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="/"><span className="brand-mark">m</span><span>mulay</span></a><div className="topbar-right"><span className={'connection ' + (online ? 'is-online' : '')}><i />{online ? '실시간 연결됨' : '연결 중'}</span>{user ? <div className="user-chip">{user.avatar && <img src={user.avatar} alt="" />}<span>{user.name}</span><button className="text-button" onClick={logout}>로그아웃</button></div> : <a className="login-button" href="/server/auth/google" title={!googleConfigured ? 'Google OAuth 설정 필요' : undefined}><b>G</b> Google 로그인</a>}</div></header>
-    <main>
-      <section className="intro"><div className="eyebrow"><span className="live-dot" /> ONE ROOM, ONE PLAYLIST</div><h1>지금, 함께 듣는 음악</h1><p>좋아하는 노래를 더하고, 같은 순간을 나눠요.</p></section>
-      {room.announcement && <div className="announcement"><span>공지</span><p>{room.announcement.text}</p></div>}
-      {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="알림 닫기">×</button></div>}
-      <section className="player-card"><div className="player-frame"><div ref={playerHost} id="youtube-player" />{!room.current && <div className="player-empty"><span className="empty-icon">♫</span><strong>아직 재생 중인 노래가 없어요</strong><span>검색해서 첫 번째 곡을 추가해 보세요.</span></div>}</div><div className="now-playing"><div className="now-label"><span className="equalizer"><i /><i /><i /></span> NOW PLAYING</div><div className="track-title">{room.current?.title || '재생 대기 중'}</div><div className="track-subtitle">{room.current?.channel || '함께 들을 노래를 기다리고 있어요'}</div><div className="playback-meta"><span>{room.paused ? '일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span><span>·</span><span>{room.queue.length}곡 대기</span></div>{room.current && <div className="current-votes"><button onClick={() => vote(room.current!, 1)}>↑ 좋아요 {room.current.likes}</button><button onClick={() => vote(room.current!, -1)}>↓ 싫어요 {room.current.dislikes}</button></div>}{user?.admin && <div className="admin-playback"><button onClick={() => admin({ action: 'skip' })}>다음 곡</button><button onClick={() => admin({ action: 'stop' })}>재생 중단</button></div>}</div></section>
-      <section className="search-section"><div className="section-heading"><div><span className="section-kicker">DISCOVER</span><h2>어떤 노래를 들을까요?</h2></div><span className="muted small">YouTube에서 검색</span></div><form className="search-form" onSubmit={search}><span className="search-icon">⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="노래 제목, 아티스트 검색" maxLength={100} /><button type="submit" disabled={searching}>{searching ? '검색 중…' : '검색'}</button></form>{searchError && <p className="inline-message">{searchError}</p>}{results.length > 0 && <div className="search-results">{results.map((track) => <article className="result-row" key={track.videoId}><img src={track.thumbnail} alt="" /><div className="result-info"><strong>{track.title}</strong><span>{track.channel} · {Math.floor(track.durationSeconds / 60)}:{String(track.durationSeconds % 60).padStart(2, '0')}</span></div><button className="add-button" disabled={track.durationSeconds > 600} onClick={() => add(track)}>{track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}</button></article>)}</div>}</section>
-      <div className="lower-grid"><section className="queue-section panel"><div className="section-heading"><div><span className="section-kicker">UP NEXT</span><h2>대기열 <span className="count">{room.queue.length}</span></h2></div></div>{!room.queue.length ? <div className="empty-list">대기 중인 노래가 없어요.<br />첫 곡을 추천해 주세요.</div> : <div className="queue-list">{room.queue.map((track, index) => <article className="queue-row" key={track.id}><span className="queue-index">{String(index + 1).padStart(2, '0')}</span><img src={track.thumbnail} alt="" /><div className="queue-info"><strong>{track.title}</strong><span>{track.channel}</span></div><div className="vote-actions"><button title="좋아요" onClick={() => vote(track, 1)}>↑ <span>{track.likes}</span></button><button title="싫어요" onClick={() => vote(track, -1)}>↓ <span>{track.dislikes}</span></button></div></article>)}</div>}</section>
-      <section className="chat-section panel"><div className="section-heading"><div><span className="section-kicker">SAY HELLO</span><h2>채팅</h2></div><span className="chat-status"><i /> LIVE</span></div><div className="chat-messages">{room.chat.map((m) => <div className="chat-message" key={m.id}>{m.avatar ? <img src={m.avatar} alt="" /> : <span className="avatar-fallback">{m.name.slice(0, 1)}</span>}<div className="chat-copy"><div><strong>{m.name}</strong><time>{new Date(m.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></div><p>{m.text}</p></div></div>)}</div><form className="chat-form" onSubmit={sendChat}><input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'} maxLength={500} disabled={!user} /><button type="submit" disabled={!user || !chatInput.trim()} aria-label="채팅 보내기">↗</button></form></section></div>
-      {user?.admin && <section className="admin-panel panel"><div className="section-heading"><div><span className="section-kicker">MODERATION</span><h2>관리자 도구</h2></div><span className="admin-tag">ADMIN</span></div><div className="admin-tools"><form onSubmit={(e) => { e.preventDefault(); if (adminId.trim()) admin({ action: 'ban', userId: adminId.trim() }) }}><label>사용자 ID 차단</label><div className="admin-inline"><select value={adminId} onChange={(e) => setAdminId(e.target.value)}><option value="">접속자 선택 ({activeUsers.length}명)</option>{activeUsers.map((active) => <option key={active.id} value={active.id}>{active.name} · {active.id}</option>)}</select><input value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="또는 Google 사용자 ID 입력" /><button>차단</button><button type="button" className="secondary-button" onClick={() => admin({ action: 'unban', userId: adminId.trim() })}>차단 해제</button></div></form><form onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const text = new FormData(f).get('announcement')?.toString().trim(); if (text) { admin({ action: 'announce', text }); f.reset() } }}><label>전체 공지</label><div className="admin-inline"><input name="announcement" maxLength={500} placeholder="모든 접속자에게 보낼 공지" /><button>공지 보내기</button></div></form></div></section>}
-      <footer><span>mulay <b>·</b> 음악으로 연결되는 공간</span><span>각 영상은 YouTube 공식 플레이어로 재생됩니다.</span></footer>
-    </main>
-  </div>
+    socket.current?.emit(
+      'chat:send',
+      chatInput,
+      (result: { ok: boolean; error?: string }) => {
+        if (result.ok) setChatInput('')
+        else setNotice(result.error || '채팅 실패')
+      },
+    )
+  }
+
+  const admin = (command: Record<string, string>) => {
+    socket.current?.emit(
+      'admin:command',
+      command,
+      (result: { ok: boolean; error?: string }) => {
+        setNotice(
+          result.ok ? '관리자 명령을 실행했어요.' : result.error || '명령 실패',
+        )
+      },
+    )
+  }
+
+  const logout = async () => {
+    await fetch('/server/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+    setUser(null)
+    window.location.reload()
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="/">
+          <span className="brand-mark">m</span>
+          <span>mulay</span>
+        </a>
+        <div className="topbar-right">
+          <span className={'connection ' + (online ? 'is-online' : '')}>
+            <i />
+            {online ? '실시간 연결됨' : '연결 중'}
+          </span>
+          {user ? (
+            <div className="user-chip">
+              {user.avatar && <img src={user.avatar} alt="" />}
+              <span>{user.name}</span>
+              <button className="text-button" onClick={logout}>로그아웃</button>
+            </div>
+          ) : (
+            <a
+              className="login-button"
+              href="/server/auth/google"
+              title={!googleConfigured ? 'Google OAuth 설정 필요' : undefined}
+            >
+              <b>G</b> Google 로그인
+            </a>
+          )}
+        </div>
+      </header>
+
+      <main>
+        <section className="intro">
+          <div className="eyebrow">
+            <span className="live-dot" /> ONE ROOM, ONE PLAYLIST
+          </div>
+          <h1>지금, 함께 듣는 음악</h1>
+          <p>좋아하는 노래를 더하고, 같은 순간을 나눠요.</p>
+        </section>
+
+        {room.announcement && (
+          <div className="announcement">
+            <span>공지</span>
+            <p>{room.announcement.text}</p>
+          </div>
+        )}
+        {notice && (
+          <div className="notice" role="status">
+            <span>{notice}</span>
+            <button onClick={() => setNotice('')} aria-label="알림 닫기">×</button>
+          </div>
+        )}
+
+        <section className="player-card">
+          <div className="player-frame">
+            <div ref={playerHost} id="youtube-player" />
+            {room.current && autoplayBlocked && (
+              <button
+                className="player-start-overlay"
+                onClick={() => player.current?.playVideo?.()}
+              >
+                ▶ 재생 시작
+              </button>
+            )}
+            {!room.current && (
+              <div className="player-empty">
+                <span className="empty-icon">♫</span>
+                <strong>아직 재생 중인 노래가 없어요</strong>
+                <span>검색해서 첫 번째 곡을 추가해 보세요.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="now-playing">
+            <div className="now-label">
+              <span className="equalizer"><i /><i /><i /></span>
+              NOW PLAYING
+            </div>
+            <div className="track-title">{room.current?.title || '재생 대기 중'}</div>
+            <div className="track-subtitle">
+              {room.current?.channel || '함께 들을 노래를 기다리고 있어요'}
+            </div>
+            <div className="playback-meta">
+              <span>{room.paused ? '일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span>
+              <span>·</span>
+              <span>{room.queue.length}곡 대기</span>
+            </div>
+
+            {room.current && (
+              <div className="local-player-controls">
+                <button
+                  className="local-play-toggle"
+                  type="button"
+                  disabled={room.paused}
+                  onClick={() => {
+                    const instance = player.current
+                    if (!instance) return
+                    if (localPausedRef.current) {
+                      instance.seekTo?.(position(currentRoom.current), true)
+                      localPausedRef.current = false
+                      setLocalPaused(false)
+                      instance.playVideo?.()
+                    } else {
+                      localPausedRef.current = true
+                      setLocalPaused(true)
+                      instance.pauseVideo?.()
+                    }
+                  }}
+                  aria-label={localPaused ? '내 기기에서 재생' : '내 기기에서 일시정지'}
+                >
+                  {localPaused ? '▶ 내 기기에서 재생' : 'Ⅱ 내 기기에서 일시정지'}
+                </button>
+                <label className="volume-control">
+                  <span>볼륨</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={volume}
+                    onChange={(event) => setVolume(Number(event.target.value))}
+                    aria-label="볼륨 조절, 방향키로 5퍼센트씩 조절"
+                    title="포커스 후 ← / → 방향키로 5%씩 조절"
+                  />
+                  <output>{volume}%</output>
+                </label>
+              </div>
+            )}
+
+            {room.current && (
+              <div className="current-votes">
+                <button onClick={() => vote(room.current!, 1)}>
+                  ↑ 좋아요 {room.current.likes}
+                </button>
+                <button onClick={() => vote(room.current!, -1)}>
+                  ↓ 싫어요 {room.current.dislikes}
+                </button>
+              </div>
+            )}
+
+            {user?.admin && (
+              <div className="admin-playback">
+                {room.current && (
+                  <button onClick={() => admin({ action: room.paused ? 'resume' : 'pause' })}>
+                    {room.paused ? '다시 재생' : '일시정지'}
+                  </button>
+                )}
+                <button onClick={() => admin({ action: 'skip' })}>다음 곡</button>
+                <button onClick={() => admin({ action: 'stop' })}>재생 중단</button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="search-section">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">DISCOVER</span>
+              <h2>어떤 노래를 들을까요?</h2>
+            </div>
+            <span className="muted small">YouTube에서 검색</span>
+          </div>
+
+          <form className="search-form" onSubmit={search}>
+            <span className="search-icon">⌕</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="노래 제목, 아티스트 검색"
+              maxLength={100}
+            />
+            <button type="submit" disabled={searching}>
+              {searching ? '검색 중…' : '검색'}
+            </button>
+          </form>
+
+          {searchError && <p className="inline-message">{searchError}</p>}
+          {results.length > 0 && (
+            <div className="search-results">
+              {results.map((track) => (
+                <article className="result-row" key={track.videoId}>
+                  <img src={track.thumbnail} alt="" />
+                  <div className="result-info">
+                    <strong>{track.title}</strong>
+                    <span>
+                      {track.channel} · {Math.floor(track.durationSeconds / 60)}:
+                      {String(track.durationSeconds % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <button
+                    className="add-button"
+                    disabled={track.durationSeconds > 600}
+                    onClick={() => add(track)}
+                  >
+                    {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="lower-grid">
+          <section className="queue-section panel">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">UP NEXT</span>
+                <h2>대기열 <span className="count">{room.queue.length}</span></h2>
+              </div>
+            </div>
+
+            {!room.queue.length ? (
+              <div className="empty-list">
+                대기 중인 노래가 없어요.
+                <br />
+                첫 곡을 추천해 주세요.
+              </div>
+            ) : (
+              <div className="queue-list">
+                {room.queue.map((track, index) => (
+                  <article className="queue-row" key={track.id}>
+                    <span className="queue-index">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <img src={track.thumbnail} alt="" />
+                    <div className="queue-info">
+                      <strong>{track.title}</strong>
+                      <span>{track.channel}</span>
+                    </div>
+                    <div className="vote-actions">
+                      <button title="좋아요" onClick={() => vote(track, 1)}>
+                        ↑ <span>{track.likes}</span>
+                      </button>
+                      <button title="싫어요" onClick={() => vote(track, -1)}>
+                        ↓ <span>{track.dislikes}</span>
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="chat-section panel">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">SAY HELLO</span>
+                <h2>채팅</h2>
+              </div>
+              <span className="chat-status"><i /> LIVE</span>
+            </div>
+
+            <div className="chat-messages">
+              {room.chat.map((message) => (
+                <div
+                  className={[
+                    'chat-message',
+                    message.admin ? 'is-admin' : '',
+                    message.senderSocketId && message.senderSocketId === socket.current?.id
+                      ? 'is-own'
+                      : '',
+                  ].filter(Boolean).join(' ')}
+                  key={message.id}
+                >
+                  {message.avatar ? (
+                    <img src={message.avatar} alt="" />
+                  ) : (
+                    <span className="avatar-fallback">{message.name.slice(0, 1)}</span>
+                  )}
+                  <div className="chat-copy">
+                    <div>
+                      <strong>{message.name}</strong>
+                      {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
+                      {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                        <span className="chat-own-badge">나</span>
+                      )}
+                      <time>
+                        {new Date(message.at).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                    </div>
+                    <p>{message.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form className="chat-form" onSubmit={sendChat}>
+              <input
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'}
+                maxLength={500}
+                disabled={!user}
+              />
+              <button
+                type="submit"
+                disabled={!user || !chatInput.trim()}
+                aria-label="채팅 보내기"
+              >
+                ↗
+              </button>
+            </form>
+          </section>
+        </div>
+
+        {user?.admin && (
+          <section className="admin-panel panel">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">MODERATION</span>
+                <h2>관리자 도구</h2>
+              </div>
+              <span className="admin-tag">ADMIN</span>
+            </div>
+
+            <div className="admin-tools">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (adminId.trim()) admin({ action: 'ban', userId: adminId.trim() })
+                }}
+              >
+                <label>사용자 ID 차단</label>
+                <div className="admin-inline">
+                  <select value={adminId} onChange={(event) => setAdminId(event.target.value)}>
+                    <option value="">접속자 선택 ({activeUsers.length}명)</option>
+                    {activeUsers.map((activeUser) => (
+                      <option key={activeUser.id} value={activeUser.id}>
+                        {activeUser.name} · {activeUser.id}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={adminId}
+                    onChange={(event) => setAdminId(event.target.value)}
+                    placeholder="또는 Google 사용자 ID 입력"
+                  />
+                  <button>차단</button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => admin({ action: 'unban', userId: adminId.trim() })}
+                  >
+                    차단 해제
+                  </button>
+                </div>
+              </form>
+
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  const text = new FormData(event.currentTarget)
+                    .get('announcement')
+                    ?.toString()
+                    .trim()
+                  if (text) {
+                    admin({ action: 'announce', text })
+                    event.currentTarget.reset()
+                  }
+                }}
+              >
+                <label>전체 공지</label>
+                <div className="admin-inline">
+                  <input
+                    name="announcement"
+                    maxLength={500}
+                    placeholder="모든 접속자에게 보낼 공지"
+                  />
+                  <button>공지 보내기</button>
+                </div>
+              </form>
+            </div>
+          </section>
+        )}
+
+        <footer>
+          <span>mulay <b>·</b> 음악으로 연결되는 공간</span>
+          <span>각 영상은 YouTube 공식 플레이어로 재생됩니다.</span>
+        </footer>
+      </main>
+    </div>
+  )
 }

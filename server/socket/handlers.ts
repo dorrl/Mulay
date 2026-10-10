@@ -14,7 +14,10 @@ const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('ban'), userId: z.string().min(1).max(128) }),
   z.object({ action: z.literal('unban'), userId: z.string().min(1).max(128) }),
   z.object({ action: z.literal('announce'), text: z.string().trim().min(1).max(500) }),
-  z.object({ action: z.literal('skip') }), z.object({ action: z.literal('stop') }),
+  z.object({ action: z.literal('skip') }),
+  z.object({ action: z.literal('stop') }),
+  z.object({ action: z.literal('pause') }),
+  z.object({ action: z.literal('resume') }),
 ])
 export const registerSocketHandlers = (io: Server) => {
   io.use((socket, next) => {
@@ -47,9 +50,14 @@ export const registerSocketHandlers = (io: Server) => {
       const now = Date.now()
       const lastUserAdded = state.history.filter(item => item.addedBy === user.id).reduce((latest, item) => Math.max(latest, item.addedAt), 0)
       const cooldownRemaining = 5 * 60 * 1000 - (now - lastUserAdded)
-      if (cooldownRemaining > 0) return ack?.({ ok: false, error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(cooldownRemaining / 60000)}분 후 다시 시도하세요.` })
+      if (!user.admin && cooldownRemaining > 0) {
+        return ack?.({
+          ok: false,
+          error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(cooldownRemaining / 60000)}분 후 다시 시도하세요.`,
+        })
+      }
       const lastAdded = state.history.filter(item => item.videoId === parsed.data.videoId).reduce((latest, item) => Math.max(latest, item.addedAt), 0)
-      if (now - lastAdded < 6 * 60 * 60 * 1000) {
+      if (!user.admin && now - lastAdded < 6 * 60 * 60 * 1000) {
         const hours = Math.ceil((6 * 60 * 60 * 1000 - (now - lastAdded)) / 3600000)
         return ack?.({ ok: false, error: '같은 영상은 6시간마다 추가할 수 있습니다. 약 ' + hours + '시간 후 다시 시도하세요.' })
       }
@@ -61,9 +69,21 @@ export const registerSocketHandlers = (io: Server) => {
       if (durationSeconds > 600) return ack?.({ ok: false, error: '10분을 초과하는 영상은 추가할 수 없습니다.' })
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
-      if (checkedAt - recentUserAdd < 5 * 60 * 1000) { const remaining = 5 * 60 * 1000 - (checkedAt - recentUserAdd); return ack?.({ ok: false, error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(remaining / 60000)}분 후 다시 시도하세요.` }) }
+      if (!user.admin && checkedAt - recentUserAdd < 5 * 60 * 1000) {
+        const remaining = 5 * 60 * 1000 - (checkedAt - recentUserAdd)
+        return ack?.({
+          ok: false,
+          error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(remaining / 60000)}분 후 다시 시도하세요.`,
+        })
+      }
       const recentSameVideo = state.history.reduce((latest, item) => item.videoId === parsed.data.videoId ? Math.max(latest, item.addedAt) : latest, 0)
-      if (checkedAt - recentSameVideo < 6 * 60 * 60 * 1000) { const hours = Math.ceil((6 * 60 * 60 * 1000 - (checkedAt - recentSameVideo)) / 3600000); return ack?.({ ok: false, error: '같은 영상은 6시간마다 추가할 수 있습니다. 약 ' + hours + '시간 후 다시 시도하세요.' }) }
+      if (!user.admin && checkedAt - recentSameVideo < 6 * 60 * 60 * 1000) {
+        const hours = Math.ceil((6 * 60 * 60 * 1000 - (checkedAt - recentSameVideo)) / 3600000)
+        return ack?.({
+          ok: false,
+          error: '같은 영상은 6시간마다 추가할 수 있습니다. 약 ' + hours + '시간 후 다시 시도하세요.',
+        })
+      }
       const track = toTrack(parsed.data.videoId, parsed.data.title, parsed.data.channel, parsed.data.thumbnail || '', user, durationSeconds)
       state.history.push({ videoId: track.videoId, addedAt: checkedAt, addedBy: user.id })
       state.history = state.history.filter(item => item.addedAt > now - 30 * 24 * 60 * 60 * 1000)
@@ -87,24 +107,9 @@ export const registerSocketHandlers = (io: Server) => {
       if (!allowSocketEvent(user.id, 'chat:send', 6, 10000)) return ack?.({ ok: false, error: '채팅을 너무 빠르게 보내고 있어요.' })
       const parsed = chatSchema.safeParse(raw)
       if (!parsed.success) return ack?.({ ok: false, error: '채팅은 1~500자로 입력하세요.' })
-      const message: ChatMessage = { id: randomUUID(), userId: user.id, name: user.name, avatar: user.avatar, text: parsed.data, at: Date.now() }
+      const message: ChatMessage = { id: randomUUID(), userId: user.id, name: user.name, avatar: user.avatar, text: parsed.data, at: Date.now(), admin: user.admin }
       state.chat.push(message); state.chat = state.chat.slice(-200)
-      await persist(); io.emit('chat:message', publicChatMessage(message)); ack?.({ ok: true })
-    })
-    socket.on('playback:ad-resync', async (raw: unknown) => {
-      if (!user) return
-      if (!allowSocketEvent(user.id, 'playback:ad-resync', 2, 60000)) return
-      const parsed = z.object({ videoId: videoIdSchema, currentTime: z.number().finite().min(0).max(86400) }).safeParse(raw)
-      if (!parsed.success || !state.current || state.current.videoId !== parsed.data.videoId) return
-      const now = Date.now()
-      if (now - (state.startedAt ?? 0) < 15000) return
-      const expected = Math.max(0, (now - (state.startedAt ?? now)) / 1000)
-      const drift = parsed.data.currentTime - expected
-      if (Math.abs(drift) < 2 || Math.abs(drift) > 300) return
-      state.startedAt = now - parsed.data.currentTime * 1000; state.paused = false; state.pausedAt = null
-      await persist()
-      io.emit('playback:resynced', { videoId: parsed.data.videoId, startedAt: state.startedAt, by: safeUser(user) })
-      broadcastState(io)
+      await persist(); io.emit('chat:message', publicChatMessage(message, socket.id)); ack?.({ ok: true })
     })
     socket.on('admin:command', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
       if (!user) return ack?.({ ok: false, error: '관리자 권한이 필요합니다.' })
@@ -119,9 +124,19 @@ export const registerSocketHandlers = (io: Server) => {
       } else if (command.action === 'unban') state.bannedUsers = state.bannedUsers.filter(id => id !== command.userId)
       else if (command.action === 'announce') { state.announcement = { id: randomUUID(), text: command.text, at: Date.now() }; io.emit('room:announcement', state.announcement) }
       else if (command.action === 'skip') promoteNext(io)
-      else if (command.action === 'stop') {
+      else if (command.action === 'pause') {
+        if (state.current && !state.paused && state.startedAt !== null) {
+          state.pausedAt = Math.max(0, (Date.now() - state.startedAt) / 1000)
+          state.paused = true
+        }
+      } else if (command.action === 'resume') {
+        if (state.current && state.paused && state.pausedAt !== null) {
+          state.startedAt = Date.now() - state.pausedAt * 1000
+          state.pausedAt = null
+          state.paused = false
+        }
+      } else if (command.action === 'stop') {
         state.current = null; state.startedAt = null; state.pausedAt = null; state.paused = false
-        await persist(); broadcastState(io)
       }
       await persist(); broadcastState(io); ack?.({ ok: true })
     })
