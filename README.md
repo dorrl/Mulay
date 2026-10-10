@@ -37,14 +37,14 @@ npm run dev
 
 Vite는 `http://localhost:5173`, API와 Socket.IO 서버는 `http://localhost:3001`에서 실행됩니다. Google OAuth를 설정하기 전에도 화면은 열리지만 로그인·검색은 작동하지 않습니다.
 
-프로덕션 빌드:
+프로덕션 빌드 및 실행:
 
 ```bash
 npm run build
-npm start
+node dist/index.js
 ```
 
-빌드 결과물 `dist`는 Express가 제공하며, API/Socket.IO와 같은 출처로 운영할 수 있습니다. TLS(HTTPS)는 리버스 프록시에서 종료하고, 프록시를 사용하는 경우에만 `TRUST_PROXY=true`로 설정하세요. 프로덕션에서는 반드시 강력한 `SESSION_SECRET`과 `NODE_ENV=production`을 설정해야 합니다.
+빌드는 서버 TypeScript를 `dist/`에 JavaScript로 컴파일하고 프런트엔드 파일은 `dist/public/`에 생성합니다. 따라서 `node dist/index.js` 한 프로세스로 Express API, Socket.IO, 정적 프런트엔드를 함께 제공합니다. 개발 중에는 `npm run dev`를 사용하세요. TLS(HTTPS)는 리버스 프록시에서 종료하고, 프록시를 사용하는 경우에만 `TRUST_PROXY=true`로 설정하세요. 프로덕션에서는 반드시 강력한 `SESSION_SECRET`과 `NODE_ENV=production`을 설정해야 합니다.
 
 ## 저장 데이터
 
