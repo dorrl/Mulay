@@ -319,7 +319,7 @@ io.on('connection', (socket) => {
 if (existsSync(path.resolve('./dist'))) {
   const dist = path.resolve('./dist')
   app.use(express.static(dist, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
-  app.get(/^(?!\\/api(?:\\/|$)|\\/auth(?:\\/|$)|\\/socket\\.io(?:\\/|$)).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
+  app.use((req, res, next) => { if (req.path.startsWith('/api/') || req.path.startsWith('/auth/') || req.path.startsWith('/socket.io/')) return next(); res.sendFile(path.join(dist, 'index.html')) })
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
