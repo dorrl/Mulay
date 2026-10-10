@@ -252,7 +252,7 @@ io.on('connection', (socket) => {
     state.chat.push(message)
     state.chat = state.chat.slice(-200)
     await persist()
-    io.emit('chat:message', message)
+    io.emit('chat:message', (({ userId: _userId, ...publicMessage }) => publicMessage)(message))
     ack?.({ ok: true })
   })
   socket.on('playback:ad-resync', async (raw: unknown) => {
