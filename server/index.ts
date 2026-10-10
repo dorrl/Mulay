@@ -225,8 +225,11 @@ io.on('connection', (socket) => {
   socket.emit('user:profile', safeUser(user))
   socket.on('sync:request', () => socket.emit('room:state', publicState()))
   socket.on('playback:ended', (raw: unknown) => {
+    if (!allowSocketEvent(user.id, 'playback:ended', 2, 60_000)) return
     const parsed = z.object({ videoId: videoIdSchema }).safeParse(raw)
-    if (parsed.success && state.current?.videoId === parsed.data.videoId) promoteNext()
+    if (!parsed.success || state.current?.videoId !== parsed.data.videoId) return
+    if (Date.now() - (state.startedAt ?? Date.now()) < 30_000) return
+    promoteNext()
   })
 
   socket.on('queue:add', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
