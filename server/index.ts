@@ -33,6 +33,7 @@ const io = new Server(httpServer, {
 })
 
 type User = { id: string; name: string; email: string; avatar: string; admin: boolean }
+const connectedUsers = new Map<string, User>()
 type Track = { id: string; videoId: string; title: string; channel: string; thumbnail: string; addedBy: string; addedAt: number; votes: Record<string, 1 | -1> }
 type ChatMessage = { id: string; userId: string; name: string; avatar: string; text: string; at: number }
 type RoomState = {
@@ -182,7 +183,10 @@ app.get('/api/search', async (req, res) => {
     res.status(502).json({ error: 'YouTube 검색 서버에 연결할 수 없습니다.' })
   }
 })
-app.get('/api/admin/users', requireUser, requireAdmin, (_req, res) => res.json({ bannedUsers: state.bannedUsers }))
+app.get('/api/admin/users', requireUser, requireAdmin, (_req, res) => {
+  const activeUsers = Array.from(new Map(Array.from(connectedUsers.values()).map((u) => [u.id, safeUser(u)])).values())
+  res.json({ bannedUsers: state.bannedUsers, activeUsers })
+})
 
 const videoIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{11}$/)
 const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional() })
@@ -202,6 +206,8 @@ io.use((socket, next) => {
 })
 io.on('connection', (socket) => {
   const user = getUser(socket)!
+  connectedUsers.set(socket.id, user)
+  socket.on('disconnect', () => connectedUsers.delete(socket.id))
   socket.emit('room:state', publicState())
   socket.emit('user:profile', safeUser(user))
   socket.on('sync:request', () => socket.emit('room:state', publicState()))
