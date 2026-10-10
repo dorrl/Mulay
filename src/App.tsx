@@ -7,7 +7,7 @@ type Track = { id: string; videoId: string; title: string; channel: string; thum
 type Message = { id: string; userId: string; name: string; avatar: string; text: string; at: number }
 type Room = { current: Track | null; queue: Track[]; startedAt: number | null; pausedAt: number | null; paused: boolean; announcement: { id: string; text: string; at: number } | null; chat: Message[] }
 type Result = { videoId: string; title: string; channel: string; thumbnail: string }
-type Player = { loadVideoById: (arg: { videoId: string; startSeconds?: number }) => void; seekTo: (seconds: number, ahead: boolean) => void; getCurrentTime: () => number; destroy: () => void }
+type Player = { loadVideoById: (arg: { videoId: string; startSeconds?: number }) => void; seekTo: (seconds: number, ahead: boolean) => void; getCurrentTime: () => number; stopVideo: () => void; destroy: () => void }
 type YTApi = { Player: new (element: HTMLElement, options: Record<string, unknown>) => Player; PlayerState: { PLAYING: number; BUFFERING: number; ENDED: number } }
 declare global { interface Window { YT?: YTApi; onYouTubeIframeAPIReady?: () => void } }
 const blank: Room = { current: null, queue: [], startedAt: null, pausedAt: null, paused: false, announcement: null, chat: [] }
@@ -89,7 +89,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!player.current || !room.current || loadedVideo.current === room.current.videoId) return
+    if (!player.current) return
+    if (!room.current) { loadedVideo.current = null; player.current.stopVideo(); return }
+    if (loadedVideo.current === room.current.videoId) return
     loadedVideo.current = room.current.videoId
     player.current.loadVideoById({ videoId: room.current.videoId, startSeconds: position(room) })
   }, [room.current?.videoId])
