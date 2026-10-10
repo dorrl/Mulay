@@ -7,7 +7,7 @@ export const toTrack = (videoId: string, title: string, channel: string, thumbna
   id: randomUUID(), videoId, title: title.slice(0, 200), channel: channel.slice(0, 120),
   thumbnail: thumbnail.startsWith('https://i.ytimg.com/') ? thumbnail : 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg',
   durationSeconds,
-  addedBy: user.id, addedAt: Date.now(), votes: {},
+  addedBy: user.id, addedByName: user.name, addedByAvatar: user.avatar, addedAt: Date.now(), votes: {},
 })
 export const publicState = () => ({
   current: state.current ? (({ votes, ...track }) => ({ ...track, likes: Object.values(votes).filter(v => v === 1).length, dislikes: Object.values(votes).filter(v => v === -1).length }))(state.current) : null,
