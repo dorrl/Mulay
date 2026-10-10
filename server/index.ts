@@ -120,9 +120,9 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware)
 app.use(passport.initialize())
 app.use(passport.session())
-io.engine.use(sessionMiddleware)
-io.engine.use(passport.initialize())
-io.engine.use(passport.session())
+io.engine.use(sessionMiddleware as never)
+io.engine.use(passport.initialize() as never)
+io.engine.use(passport.session() as never)
 
 passport.serializeUser((user, done) => done(null, user))
 passport.deserializeUser((user: Express.User, done) => done(null, user))
