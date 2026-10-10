@@ -153,3 +153,8 @@ footer b { color: #c6f277; padding: 0 4px; }
   .queue-row > img { width: 49px; }
   .vote-actions button { min-width: 35px; }
 }
+
+.current-votes { display: flex; gap: 8px; margin-top: 13px; }
+.current-votes button { border: 1px solid #ffffff16; background: #ffffff05; color: #bdbbc7; border-radius: 7px; padding: 7px 9px; font-size: 10px; }
+.current-votes button:hover { color: #c6f277; border-color: #c6f27750; }
+.admin-inline select { min-width: 0; flex: 1; border: 1px solid #ffffff16; background: #111115; border-radius: 8px; padding: 10px; color: #e8e7ef; font-size: 11px; }
