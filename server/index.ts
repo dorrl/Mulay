@@ -78,10 +78,10 @@ const toTrack = (videoId: string, title: string, channel: string, thumbnail: str
   addedBy: user.id, addedAt: Date.now(), votes: {},
 })
 const publicState = () => ({
-  current: state.current,
+  current: state.current ? (({ votes, ...track }) => ({ ...track, likes: Object.values(votes).filter((v) => v === 1).length, dislikes: Object.values(votes).filter((v) => v === -1).length }))(state.current) : null,
   queue: state.queue.map(({ votes, ...track }) => ({ ...track, likes: Object.values(votes).filter((v) => v === 1).length, dislikes: Object.values(votes).filter((v) => v === -1).length })),
   startedAt: state.startedAt, pausedAt: state.pausedAt, paused: state.paused,
-  announcement: state.announcement, chat: state.chat.slice(-100),
+  announcement: state.announcement, chat: state.chat.slice(-100).map(({ userId: _userId, ...message }) => message),
 })
 const broadcastState = () => io.emit('room:state', publicState())
 const promoteNext = () => {
