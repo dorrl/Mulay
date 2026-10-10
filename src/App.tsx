@@ -18,6 +18,8 @@ type Track = {
   durationSeconds?: number
   likes: number
   dislikes: number
+  addedByName?: string
+  addedByAvatar?: string
 }
 
 type Message = {
@@ -53,6 +55,7 @@ type Player = {
   loadVideoById?: (arg: { videoId: string; startSeconds?: number }) => void
   seekTo?: (seconds: number, allowSeekAhead: boolean) => void
   getCurrentTime?: () => number
+  getDuration?: () => number
   getPlaybackRate?: () => number
   setPlaybackRate?: (rate: number) => void
   getPlayerState?: () => number
@@ -93,6 +96,12 @@ const blank: Room = {
   paused: false,
   announcement: null,
   chat: [],
+}
+
+const formatTime = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const total = Math.floor(seconds)
+  return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0')
 }
 
 const position = (room: Room): number => {
@@ -147,6 +156,8 @@ export default function App() {
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [localPaused, setLocalPaused] = useState(false)
   const [volume, setVolume] = useState(70)
+  const [playbackTime, setPlaybackTime] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
   const localPausedRef = useRef(false)
   const socket = useRef<Socket | null>(null)
   const player = useRef<Player | null>(null)
@@ -315,6 +326,18 @@ export default function App() {
     player.current?.setVolume?.(volume)
   }, [volume])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const instance = player.current
+      if (!instance || !playerReady.current) return
+      const time = instance.getCurrentTime?.()
+      const duration = instance.getDuration?.()
+      if (typeof time === 'number' && Number.isFinite(time)) setPlaybackTime(time)
+      if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) setVideoDuration(duration)
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const search = async (event: FormEvent) => {
     event.preventDefault()
     const searchTerm = query.trim()
@@ -470,6 +493,18 @@ export default function App() {
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
+            <button
+              className="fullscreen-button"
+              type="button"
+              aria-label="전체 화면"
+              title="전체 화면"
+              onClick={() => {
+                const frame = playerHost.current?.parentElement
+                if (!frame) return
+                if (document.fullscreenElement) void document.exitFullscreen()
+                else void frame.requestFullscreen?.()
+              }}
+            >⛶</button>
             {room.current && autoplayBlocked && (
               <button
                 className="player-start-overlay"
@@ -497,10 +532,32 @@ export default function App() {
               {room.current?.channel || '함께 들을 노래를 기다리고 있어요'}
             </div>
             <div className="playback-meta">
-              <span>{room.paused ? '일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span>
+              <span>{room.paused ? '전체 일시정지' : room.current ? '공동 재생 중' : '대기 중'}</span>
               <span>·</span>
               <span>{room.queue.length}곡 대기</span>
             </div>
+            {room.current && (
+              <>
+                <div className="track-progress" aria-label="노래 재생 진행률">
+                  <div className="track-progress-top">
+                    <span>{formatTime(playbackTime)}</span>
+                    <span>{formatTime(videoDuration)}</span>
+                  </div>
+                  <div className="track-progress-rail">
+                    <div
+                      className="track-progress-fill"
+                      style={{ width: videoDuration > 0 ? Math.min(100, (playbackTime / videoDuration) * 100) + '%' : '0%' }}
+                    />
+                  </div>
+                </div>
+                <div className="track-added-by">
+                  {room.current.addedByAvatar
+                    ? <img src={room.current.addedByAvatar} alt="" />
+                    : <span className="added-by-fallback">{(room.current.addedByName || '?').slice(0, 1).toUpperCase()}</span>}
+                  <span><small>이 노래를 추가한 사람</small><strong>{room.current.addedByName || '알 수 없음'}</strong></span>
+                </div>
+              </>
+            )}
 
             {room.current && (
               <div className="local-player-controls">
@@ -522,9 +579,9 @@ export default function App() {
                       instance.pauseVideo?.()
                     }
                   }}
-                  aria-label={localPaused ? '내 기기에서 재생' : '내 기기에서 일시정지'}
+                  aria-label={localPaused ? '재생' : '일시정지'}
                 >
-                  {localPaused ? '▶ 내 기기에서 재생' : 'Ⅱ 내 기기에서 일시정지'}
+                  {localPaused ? '▶ 재생' : 'Ⅱ 일시정지'}
                 </button>
                 <label className="volume-control">
                   <span>볼륨</span>
@@ -558,7 +615,7 @@ export default function App() {
               <div className="admin-playback">
                 {room.current && (
                   <button onClick={() => admin({ action: room.paused ? 'resume' : 'pause' })}>
-                    {room.paused ? '다시 재생' : '일시정지'}
+                    {room.paused ? '다시 재생' : '전체 일시정지'}
                   </button>
                 )}
                 <button onClick={() => admin({ action: 'skip' })}>다음 곡</button>
