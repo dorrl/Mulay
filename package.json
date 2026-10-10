@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "connect-sqlite3": "^0.9.15",
+    "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
@@ -28,7 +29,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^10.10.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
     "@types/connect-sqlite3": "^0.9.8",
