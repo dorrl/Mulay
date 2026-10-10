@@ -158,3 +158,121 @@ footer b { color: #c6f277; padding: 0 4px; }
 .current-votes button { border: 1px solid #ffffff16; background: #ffffff05; color: #bdbbc7; border-radius: 7px; padding: 7px 9px; font-size: 10px; }
 .current-votes button:hover { color: #c6f277; border-color: #c6f27750; }
 .admin-inline select { min-width: 0; flex: 1; border: 1px solid #ffffff16; background: #111115; border-radius: 8px; padding: 10px; color: #e8e7ef; font-size: 11px; }
+
+/* Layout fixes: neutralize the Vite starter root styles and keep panels aligned. */
+#root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border: 0;
+  min-height: 100svh;
+  display: block;
+}
+
+main {
+  width: min(1000px, calc(100% - 48px));
+}
+
+.search-section,
+.lower-grid,
+.panel,
+.result-row,
+.queue-row {
+  min-width: 0;
+}
+
+.search-form,
+.chat-form {
+  min-width: 0;
+}
+
+.search-form input {
+  width: 0;
+}
+
+.search-results {
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.lower-grid {
+  align-items: stretch;
+}
+
+.queue-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.queue-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.queue-row > img {
+  flex: 0 0 58px;
+}
+
+.queue-info strong {
+  line-height: 1.45;
+}
+
+.chat-section {
+  height: 390px;
+  min-height: 0;
+}
+
+.chat-messages {
+  height: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
+}
+
+.chat-form {
+  flex: 0 0 auto;
+}
+
+.search-results,
+.queue-list,
+.chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #3b3b46 transparent;
+}
+
+@media (max-width: 760px) {
+  main {
+    width: min(560px, calc(100% - 32px));
+  }
+
+  .queue-list {
+    max-height: 320px;
+  }
+
+  .chat-section {
+    height: 360px;
+  }
+}
+
+@media (max-width: 420px) {
+  main {
+    width: calc(100% - 24px);
+  }
+
+  .queue-row > img {
+    flex-basis: 49px;
+  }
+
+  .queue-index {
+    flex: 0 0 17px;
+  }
+
+  .vote-actions {
+    flex: 0 0 auto;
+  }
+}
+
