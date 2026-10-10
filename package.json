@@ -14,7 +14,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "connect-sqlite3": "^0.9.15",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
@@ -33,7 +32,6 @@
     "@eslint/js": "^10.10.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
-    "@types/connect-sqlite3": "^0.9.8",
     "@types/express": "^5.0.3",
     "@types/express-session": "^1.18.2",
     "@types/node": "^24.13.3",
@@ -52,5 +50,8 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }
