@@ -8,7 +8,7 @@ type Message = { id: string; userId: string; name: string; avatar: string; text:
 type Room = { current: Track | null; queue: Track[]; startedAt: number | null; pausedAt: number | null; paused: boolean; announcement: { id: string; text: string; at: number } | null; chat: Message[] }
 type Result = { videoId: string; title: string; channel: string; thumbnail: string }
 type Player = { loadVideoById: (arg: { videoId: string; startSeconds?: number }) => void; seekTo: (seconds: number, ahead: boolean) => void; getCurrentTime: () => number; destroy: () => void }
-type YTApi = { Player: new (element: HTMLElement, options: Record<string, unknown>) => Player; PlayerState: { PLAYING: number; BUFFERING: number } }
+type YTApi = { Player: new (element: HTMLElement, options: Record<string, unknown>) => Player; PlayerState: { PLAYING: number; BUFFERING: number; ENDED: number } }
 declare global { interface Window { YT?: YTApi; onYouTubeIframeAPIReady?: () => void } }
 const blank: Room = { current: null, queue: [], startedAt: null, pausedAt: null, paused: false, announcement: null, chat: [] }
 const position = (room: Room) => room.paused && room.pausedAt ? room.pausedAt : room.startedAt ? Math.max(0, (Date.now() - room.startedAt) / 1000) : 0
@@ -65,6 +65,10 @@ export default function App() {
           onReady: () => { loadedVideo.current = null },
           onStateChange: (event: { data: number; target: Player }) => {
             const states = window.YT?.PlayerState
+            if (states && event.data === states.ENDED) {
+              const ended = currentRoom.current.current
+              if (ended) socket.current?.emit('playback:ended', { videoId: ended.videoId })
+            }
             if (states && event.data === states.PLAYING && previousPlayerState.current === states.BUFFERING) {
               const current = currentRoom.current.current
               if (current) socket.current?.emit('playback:ad-resync', { videoId: current.videoId, currentTime: event.target.getCurrentTime() })
