@@ -287,7 +287,8 @@ io.on('connection', (socket) => {
     const now = Date.now()
     if (now - (state.startedAt ?? 0) < 15_000) return
     const expected = Math.max(0, (now - (state.startedAt ?? now)) / 1000)
-    if (Math.abs(parsed.data.currentTime - expected) < 2) return
+    const drift = parsed.data.currentTime - expected
+    if (Math.abs(drift) < 2 || Math.abs(drift) > 300) return
     state.startedAt = now - parsed.data.currentTime * 1000
     state.paused = false
     state.pausedAt = null
