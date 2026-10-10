@@ -6,7 +6,6 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import session from 'express-session'
-import SQLiteStoreFactory from 'connect-sqlite3'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import helmet from 'helmet'
@@ -18,12 +17,87 @@ const PORT = Number(process.env.PORT || 3001)
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173'
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data')
 const DATA_FILE = path.join(DATA_DIR, 'room.json')
+const SESSION_FILE = path.join(DATA_DIR, 'sessions.json')
 const SESSION_SECRET = process.env.SESSION_SECRET
 if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
   if (process.env.NODE_ENV === 'production') throw new Error('SESSION_SECRET must be at least 32 characters in production.')
   console.warn('[security] Set SESSION_SECRET to a random value of at least 32 characters.')
 }
-const Store = SQLiteStoreFactory(session)
+type StoredSession = { expiresAt: number; data: session.SessionData }
+
+class JsonSessionStore extends session.Store {
+  private sessions: Record<string, StoredSession> = {}
+  private readonly loaded: Promise<void>
+  private writes: Promise<void> = Promise.resolve()
+
+  constructor() {
+    super()
+    this.loaded = this.load()
+  }
+
+  private async load() {
+    await mkdir(DATA_DIR, { recursive: true })
+    try {
+      const parsed = JSON.parse(await readFile(SESSION_FILE, 'utf8')) as Record<string, StoredSession>
+      const now = Date.now()
+      this.sessions = Object.fromEntries(Object.entries(parsed).filter(([, value]) => value && value.expiresAt > now && value.data))
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.error('[storage] Could not read session JSON:', error)
+      }
+      this.sessions = {}
+    }
+    await this.persist()
+  }
+
+  private persist() {
+    const snapshot = JSON.stringify(this.sessions, null, 2)
+    this.writes = this.writes.then(async () => {
+      await mkdir(DATA_DIR, { recursive: true })
+      const tempFile = SESSION_FILE + '.tmp'
+      await writeFile(tempFile, snapshot, { encoding: 'utf8', mode: 0o600 })
+      await rename(tempFile, SESSION_FILE)
+    })
+    return this.writes
+  }
+
+  get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
+    void this.loaded.then(async () => {
+      const record = this.sessions[sid]
+      if (record && record.expiresAt <= Date.now()) {
+        delete this.sessions[sid]
+        await this.persist()
+      }
+      callback(null, record && record.expiresAt > Date.now() ? record.data : null)
+    }).catch(callback)
+  }
+
+  set(sid: string, value: session.SessionData, callback?: (err?: any) => void) {
+    void this.loaded.then(() => {
+      const expiresAt = value.cookie.expires?.getTime() ?? Date.now() + (value.cookie.maxAge ?? 7 * 24 * 60 * 60 * 1000)
+      this.sessions[sid] = { expiresAt, data: value }
+      return this.persist()
+    }).then(() => callback?.(null)).catch((error) => callback?.(error))
+  }
+
+  destroy(sid: string, callback?: (err?: any) => void) {
+    void this.loaded.then(() => {
+      delete this.sessions[sid]
+      return this.persist()
+    }).then(() => callback?.(null)).catch((error) => callback?.(error))
+  }
+
+  touch(sid: string, value: session.SessionData, callback?: () => void) {
+    void this.loaded.then(() => {
+      const record = this.sessions[sid]
+      if (!record) return
+      record.data = value
+      record.expiresAt = value.cookie.expires?.getTime() ?? Date.now() + (value.cookie.maxAge ?? 7 * 24 * 60 * 60 * 1000)
+      return this.persist()
+    }).then(() => callback?.()).catch((error) => console.error('[storage] Could not update session:', error))
+  }
+}
+
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
@@ -114,7 +188,7 @@ const sessionMiddleware = session({
   secret: SESSION_SECRET || 'development-only-secret-change-before-deploy',
   resave: false,
   saveUninitialized: false,
-  store: new Store({ db: 'sessions.sqlite', dir: DATA_DIR, table: 'sessions' }),
+  store: new JsonSessionStore(),
   cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 },
 })
 app.use(sessionMiddleware)
