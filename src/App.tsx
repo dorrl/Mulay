@@ -23,6 +23,7 @@ export default function App() {
   const [searchError, setSearchError] = useState('')
   const [chatInput, setChatInput] = useState('')
   const [adminId, setAdminId] = useState('')
+  const [activeUsers, setActiveUsers] = useState<User[]>([])
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(false)
   const socket = useRef<Socket | null>(null)
@@ -46,6 +47,14 @@ export default function App() {
     s.on('playback:resynced', () => setNotice('재생 위치를 다시 동기화했어요.'))
     return () => { s.disconnect(); socket.current = null }
   }, [])
+
+  useEffect(() => {
+    if (!user?.admin) return
+    const loadUsers = () => fetch('/api/admin/users', { credentials: 'include' }).then((r) => r.ok ? r.json() : null).then((data) => { if (data) setActiveUsers(data.activeUsers || []) }).catch(() => undefined)
+    void loadUsers()
+    const timer = window.setInterval(loadUsers, 10000)
+    return () => window.clearInterval(timer)
+  }, [user?.admin])
 
   useEffect(() => {
     if (!window.YT) {
@@ -147,7 +156,7 @@ export default function App() {
       <section className="search-section"><div className="section-heading"><div><span className="section-kicker">DISCOVER</span><h2>어떤 노래를 들을까요?</h2></div><span className="muted small">YouTube에서 검색</span></div><form className="search-form" onSubmit={search}><span className="search-icon">⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="노래 제목, 아티스트 검색" maxLength={100} /><button type="submit" disabled={searching}>{searching ? '검색 중…' : '검색'}</button></form>{searchError && <p className="inline-message">{searchError}</p>}{results.length > 0 && <div className="search-results">{results.map((track) => <article className="result-row" key={track.videoId}><img src={track.thumbnail} alt="" /><div className="result-info"><strong>{track.title}</strong><span>{track.channel}</span></div><button className="add-button" onClick={() => add(track)}>＋ 추가</button></article>)}</div>}</section>
       <div className="lower-grid"><section className="queue-section panel"><div className="section-heading"><div><span className="section-kicker">UP NEXT</span><h2>대기열 <span className="count">{room.queue.length}</span></h2></div></div>{!room.queue.length ? <div className="empty-list">대기 중인 노래가 없어요.<br />첫 곡을 추천해 주세요.</div> : <div className="queue-list">{room.queue.map((track, index) => <article className="queue-row" key={track.id}><span className="queue-index">{String(index + 1).padStart(2, '0')}</span><img src={track.thumbnail} alt="" /><div className="queue-info"><strong>{track.title}</strong><span>{track.channel}</span></div><div className="vote-actions"><button title="좋아요" onClick={() => vote(track, 1)}>↑ <span>{track.likes}</span></button><button title="싫어요" onClick={() => vote(track, -1)}>↓ <span>{track.dislikes}</span></button></div></article>)}</div>}</section>
       <section className="chat-section panel"><div className="section-heading"><div><span className="section-kicker">SAY HELLO</span><h2>채팅</h2></div><span className="chat-status"><i /> LIVE</span></div><div className="chat-messages">{room.chat.map((m) => <div className="chat-message" key={m.id}>{m.avatar ? <img src={m.avatar} alt="" /> : <span className="avatar-fallback">{m.name.slice(0, 1)}</span>}<div className="chat-copy"><div><strong>{m.name}</strong><time>{new Date(m.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></div><p>{m.text}</p></div></div>)}</div><form className="chat-form" onSubmit={sendChat}><input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'} maxLength={500} disabled={!user} /><button type="submit" disabled={!user || !chatInput.trim()} aria-label="채팅 보내기">↗</button></form></section></div>
-      {user?.admin && <section className="admin-panel panel"><div className="section-heading"><div><span className="section-kicker">MODERATION</span><h2>관리자 도구</h2></div><span className="admin-tag">ADMIN</span></div><div className="admin-tools"><form onSubmit={(e) => { e.preventDefault(); if (adminId.trim()) admin({ action: 'ban', userId: adminId.trim() }) }}><label>사용자 ID 차단</label><div className="admin-inline"><input value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="Google 사용자 ID" /><button>차단</button><button type="button" className="secondary-button" onClick={() => admin({ action: 'unban', userId: adminId.trim() })}>차단 해제</button></div></form><form onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const text = new FormData(f).get('announcement')?.toString().trim(); if (text) { admin({ action: 'announce', text }); f.reset() } }}><label>전체 공지</label><div className="admin-inline"><input name="announcement" maxLength={500} placeholder="모든 접속자에게 보낼 공지" /><button>공지 보내기</button></div></form></div></section>}
+      {user?.admin && <section className="admin-panel panel"><div className="section-heading"><div><span className="section-kicker">MODERATION</span><h2>관리자 도구</h2></div><span className="admin-tag">ADMIN</span></div><div className="admin-tools"><form onSubmit={(e) => { e.preventDefault(); if (adminId.trim()) admin({ action: 'ban', userId: adminId.trim() }) }}><label>사용자 ID 차단</label><div className="admin-inline"><select value={adminId} onChange={(e) => setAdminId(e.target.value)}><option value="">접속자 선택 ({activeUsers.length}명)</option>{activeUsers.map((active) => <option key={active.id} value={active.id}>{active.name} · {active.id}</option>)}</select><input value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="또는 Google 사용자 ID 입력" /><button>차단</button><button type="button" className="secondary-button" onClick={() => admin({ action: 'unban', userId: adminId.trim() })}>차단 해제</button></div></form><form onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const text = new FormData(f).get('announcement')?.toString().trim(); if (text) { admin({ action: 'announce', text }); f.reset() } }}><label>전체 공지</label><div className="admin-inline"><input name="announcement" maxLength={500} placeholder="모든 접속자에게 보낼 공지" /><button>공지 보내기</button></div></form></div></section>}
       <footer><span>mulay <b>·</b> 음악으로 연결되는 공간</span><span>각 영상은 YouTube 공식 플레이어로 재생됩니다.</span></footer>
     </main>
   </div>
