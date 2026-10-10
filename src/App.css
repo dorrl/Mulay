@@ -438,3 +438,41 @@ main {
 .track-added-by > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .track-added-by small { color: #777783; font-size: 9px; }
 .track-added-by strong { color: #d6d5df; font-size: 11px; font-weight: 600; }
+
+
+/* Player progress, uploader identity, and fullscreen affordance. */
+.fullscreen-button {
+  position: absolute; z-index: 4; right: 12px; top: 12px;
+  display: grid; place-items: center; width: 36px; height: 36px;
+  border: 1px solid #ffffff28; border-radius: 10px;
+  color: #f5f4f8; background: #09090ccc; font-size: 23px; line-height: 1;
+  transition: background .18s ease, border-color .18s ease;
+}
+.fullscreen-button:hover { background: #c6f277; border-color: #c6f277; color: #202418; }
+.player-frame:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; background: #09090c; }
+.player-frame:fullscreen #youtube-player iframe { width: 100%; height: 100%; }
+.track-progress { margin-top: 17px; }
+.track-progress-top {
+  display: flex; justify-content: space-between; color: #898895;
+  font-size: 10px; font-variant-numeric: tabular-nums; margin-bottom: 7px;
+}
+.track-progress-rail {
+  height: 6px; border-radius: 999px; overflow: hidden;
+  background: #ffffff12; box-shadow: inset 0 1px 2px #0005;
+}
+.track-progress-fill {
+  height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, #a9d95b, #d5ff8c);
+  box-shadow: 0 0 12px #c6f27738; transition: width .35s linear;
+}
+.track-added-by { display: flex; align-items: center; gap: 9px; margin-top: 14px; }
+.track-added-by img, .added-by-fallback {
+  flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+}
+.added-by-fallback {
+  display: grid; place-items: center; color: #d8f5a6; background: #c6f27718;
+  border: 1px solid #c6f27735; font-size: 12px; font-weight: 700;
+}
+.track-added-by > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.track-added-by small { color: #777783; font-size: 9px; }
+.track-added-by strong { color: #d6d5df; font-size: 11px; font-weight: 600; }
