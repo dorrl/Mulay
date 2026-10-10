@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   build: { outDir: 'dist/public', emptyOutDir: true },
   server: { proxy: {
-    '/server': { target: 'http://localhost:3001', changeOrigin: true, ws: true },
+    '/server': { target: 'http://localhost:33541', changeOrigin: true, ws: true },
   } },
 })

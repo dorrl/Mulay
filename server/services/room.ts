@@ -3,9 +3,10 @@ import type { Socket, Server } from 'socket.io'
 import { state, persist } from '../storage/room-store.js'
 import type { ChatMessage, Track, User } from '../types.js'
 export const safeUser = (u: User) => ({ id: u.id, name: u.name, avatar: u.avatar, admin: u.admin })
-export const toTrack = (videoId: string, title: string, channel: string, thumbnail: string, user: User): Track => ({
+export const toTrack = (videoId: string, title: string, channel: string, thumbnail: string, user: User, durationSeconds?: number): Track => ({
   id: randomUUID(), videoId, title: title.slice(0, 200), channel: channel.slice(0, 120),
   thumbnail: thumbnail.startsWith('https://i.ytimg.com/') ? thumbnail : 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg',
+  durationSeconds,
   addedBy: user.id, addedAt: Date.now(), votes: {},
 })
 export const publicState = () => ({
