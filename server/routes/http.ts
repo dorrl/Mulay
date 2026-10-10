@@ -1,4 +1,4 @@
-import type { Express } from 'express'
+import type { Router } from 'express'
 import passport from 'passport'
 import { z } from 'zod'
 import { currentUser, publicUser, requireAdmin, requireUser } from '../auth.js'
@@ -6,7 +6,7 @@ import { WEB_ORIGIN } from '../config.js'
 import { connectedUsers } from '../runtime.js'
 import { state } from '../storage/room-store.js'
 import { publicState } from '../services/room.js'
-export const registerHttpRoutes = (app: Express) => {
+export const registerHttpRoutes = (app: Router) => {
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
   app.get('/api/me', (req, res) => {
     const user = currentUser(req)

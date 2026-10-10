@@ -25,7 +25,7 @@ cp .env.example .env
 `.env`에 다음 값을 설정합니다.
 
 1. `SESSION_SECRET`: `openssl rand -base64 48`로 생성한 긴 임의 문자열
-2. Google Cloud Console에서 OAuth 2.0 웹 클라이언트 생성. 개발용 승인된 리디렉션 URI는 `http://localhost:3001/auth/google/callback`
+2. Google Cloud Console에서 OAuth 2.0 웹 클라이언트 생성. 개발용 승인된 리디렉션 URI는 `http://localhost:3001/server/auth/google/callback`
 3. YouTube Data API v3를 활성화하고 API 키를 `YOUTUBE_API_KEY`에 입력
 4. 관리자 계정은 `ADMIN_EMAILS`에 Google 계정 이메일을 쉼표로 구분해 입력합니다. 필요하면 Google 프로필 ID를 `ADMIN_GOOGLE_IDS`에 입력할 수도 있습니다.
 
@@ -35,7 +35,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Vite는 `http://localhost:5173`, API와 Socket.IO 서버는 `http://localhost:3001`에서 실행됩니다. Google OAuth를 설정하기 전에도 화면은 열리지만 로그인·검색은 작동하지 않습니다.
+Vite는 `http://localhost:5173`에서 실행됩니다. 서버 요청은 `/server/` 경로를 사용하며, 개발 중에는 Vite 프록시를 통해 API(`/server/api/*`), OAuth(`/server/auth/*`), Socket.IO(`/server/socket.io/`)가 `http://localhost:3001`로 전달됩니다. Google OAuth를 설정하기 전에도 화면은 열리지만 로그인·검색은 작동하지 않습니다.
 
 프로덕션 빌드 및 실행:
 
@@ -44,7 +44,7 @@ npm run build
 node dist/index.js
 ```
 
-빌드는 서버 TypeScript를 `dist/`에 JavaScript로 컴파일하고 프런트엔드 파일은 `dist/public/`에 생성합니다. 따라서 `node dist/index.js` 한 프로세스로 Express API, Socket.IO, 정적 프런트엔드를 함께 제공합니다. 개발 중에는 `npm run dev`를 사용하세요. TLS(HTTPS)는 리버스 프록시에서 종료하고, 프록시를 사용하는 경우에만 `TRUST_PROXY=true`로 설정하세요. 프로덕션에서는 반드시 강력한 `SESSION_SECRET`과 `NODE_ENV=production`을 설정해야 합니다.
+빌드는 서버 TypeScript를 `dist/`에 JavaScript로 컴파일하고 프런트엔드 파일은 `dist/public/`에 생성합니다. 따라서 `node dist/index.js` 한 프로세스로 Express API(`/server/api/*`), OAuth(`/server/auth/*`), Socket.IO(`/server/socket.io/`), 정적 프런트엔드를 함께 제공합니다. 배포 시 Google OAuth 승인 리디렉션 URI를 실제 도메인의 `/server/auth/google/callback`으로 설정하세요. 개발 중에는 `npm run dev`를 사용하세요. TLS(HTTPS)는 리버스 프록시에서 종료하고, 프록시를 사용하는 경우에만 `TRUST_PROXY=true`로 설정하세요. 프로덕션에서는 반드시 강력한 `SESSION_SECRET`과 `NODE_ENV=production`을 설정해야 합니다.
 
 ## 저장 데이터
 

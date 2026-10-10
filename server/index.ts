@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import express from 'express'
+import express, { Router } from 'express'
 import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -19,6 +19,7 @@ import { registerSocketHandlers } from './socket/handlers.js'
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
+  path: '/server/socket.io',
   cors: { origin: process.env.WEB_ORIGIN || 'http://localhost:5173', credentials: true },
   maxHttpBufferSize: 1e6,
   connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000, skipMiddlewares: false },
@@ -51,14 +52,16 @@ app.use(passport.session())
 io.engine.use(sessionMiddleware as never)
 io.engine.use(passport.initialize() as never)
 io.engine.use(passport.session() as never)
-registerHttpRoutes(app)
+const serverRouter = Router()
+registerHttpRoutes(serverRouter)
+app.use('/server', serverRouter)
 registerSocketHandlers(io)
 
 const clientDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public')
 if (existsSync(path.join(clientDir, 'index.html'))) {
   app.use(express.static(clientDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/auth/') || req.path.startsWith('/socket.io/')) return next()
+    if (req.path.startsWith('/server/')) return next()
     res.sendFile(path.join(clientDir, 'index.html'))
   })
 }

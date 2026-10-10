@@ -36,8 +36,8 @@ export default function App() {
   currentRoom.current = room
 
   useEffect(() => {
-    fetch('/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
-    const s = io({ withCredentials: true, reconnection: true })
+    fetch('/server/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
+    const s = io({ path: '/server/socket.io', withCredentials: true, reconnection: true })
     socket.current = s
     s.on('connect', () => { setOnline(true); awaitingSync.current = true; s.emit('sync:request') })
     s.on('disconnect', () => setOnline(false))
@@ -57,7 +57,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user?.admin) return
-    const loadUsers = () => fetch('/api/admin/users', { credentials: 'include' }).then((r) => r.ok ? r.json() : null).then((data) => { if (data) setActiveUsers(data.activeUsers || []) }).catch(() => undefined)
+    const loadUsers = () => fetch('/server/api/admin/users', { credentials: 'include' }).then((r) => r.ok ? r.json() : null).then((data) => { if (data) setActiveUsers(data.activeUsers || []) }).catch(() => undefined)
     void loadUsers()
     const timer = window.setInterval(loadUsers, 10000)
     return () => window.clearInterval(timer)
@@ -133,7 +133,7 @@ export default function App() {
     if (!query.trim()) return
     setSearching(true); setSearchError(''); setResults([])
     try {
-      const response = await fetch('/api/search?q=' + encodeURIComponent(query.trim()))
+      const response = await fetch('/server/api/search?q=' + encodeURIComponent(query.trim()))
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || '검색에 실패했습니다.')
       setResults(data.items)
@@ -158,10 +158,10 @@ export default function App() {
     socket.current?.emit('chat:send', chatInput, (r: { ok: boolean; error?: string }) => { if (r.ok) setChatInput(''); else setNotice(r.error || '채팅 실패') })
   }
   const admin = (command: Record<string, string>) => socket.current?.emit('admin:command', command, (r: { ok: boolean; error?: string }) => setNotice(r.ok ? '관리자 명령을 실행했어요.' : r.error || '명령 실패'))
-  const logout = async () => { await fetch('/auth/logout', { method: 'POST', credentials: 'include' }); setUser(null); window.location.reload() }
+  const logout = async () => { await fetch('/server/auth/logout', { method: 'POST', credentials: 'include' }); setUser(null); window.location.reload() }
 
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="/"><span className="brand-mark">m</span><span>mulay</span></a><div className="topbar-right"><span className={'connection ' + (online ? 'is-online' : '')}><i />{online ? '실시간 연결됨' : '연결 중'}</span>{user ? <div className="user-chip">{user.avatar && <img src={user.avatar} alt="" />}<span>{user.name}</span><button className="text-button" onClick={logout}>로그아웃</button></div> : <a className="login-button" href="/auth/google" title={!googleConfigured ? 'Google OAuth 설정 필요' : undefined}><b>G</b> Google 로그인</a>}</div></header>
+    <header className="topbar"><a className="brand" href="/"><span className="brand-mark">m</span><span>mulay</span></a><div className="topbar-right"><span className={'connection ' + (online ? 'is-online' : '')}><i />{online ? '실시간 연결됨' : '연결 중'}</span>{user ? <div className="user-chip">{user.avatar && <img src={user.avatar} alt="" />}<span>{user.name}</span><button className="text-button" onClick={logout}>로그아웃</button></div> : <a className="login-button" href="/server/auth/google" title={!googleConfigured ? 'Google OAuth 설정 필요' : undefined}><b>G</b> Google 로그인</a>}</div></header>
     <main>
       <section className="intro"><div className="eyebrow"><span className="live-dot" /> ONE ROOM, ONE PLAYLIST</div><h1>지금, 함께 듣는 음악</h1><p>좋아하는 노래를 더하고, 같은 순간을 나눠요.</p></section>
       {room.announcement && <div className="announcement"><span>공지</span><p>{room.announcement.text}</p></div>}
