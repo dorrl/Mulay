@@ -422,13 +422,13 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="/">
-          <span className="brand-mark">m</span>
+          <span className="brand-mark"></span>
           <span>mulay</span>
         </a>
         <div className="topbar-right">
           <span className={'connection ' + (online ? 'is-online' : '')}>
             <i />
-            {online ? '실시간 연결됨' : '연결 중'}
+            {online ? 'Online' : 'Offline'}
           </span>
           {user ? (
             <div className="user-chip">
@@ -450,11 +450,8 @@ export default function App() {
 
       <main>
         <section className="intro">
-          <div className="eyebrow">
-            <span className="live-dot" /> ONE ROOM, ONE PLAYLIST
-          </div>
-          <h1>지금, 함께 듣는 음악</h1>
-          <p>좋아하는 노래를 더하고, 같은 순간을 나눠요.</p>
+          <h1>누구나 듣는 음악</h1>
+          <p>모두에게 자신만의 음악을 추천하세요!</p>
         </section>
 
         {room.announcement && (
@@ -623,7 +620,6 @@ export default function App() {
           <section className="queue-section panel">
             <div className="section-heading">
               <div>
-                <span className="section-kicker">UP NEXT</span>
                 <h2>대기열 <span className="count">{room.queue.length}</span></h2>
               </div>
             </div>
@@ -663,10 +659,8 @@ export default function App() {
           <section className="chat-section panel">
             <div className="section-heading">
               <div>
-                <span className="section-kicker">SAY HELLO</span>
                 <h2>채팅</h2>
               </div>
-              <span className="chat-status"><i /> LIVE</span>
             </div>
 
             <div className="chat-messages">
@@ -729,7 +723,6 @@ export default function App() {
           <section className="admin-panel panel">
             <div className="section-heading">
               <div>
-                <span className="section-kicker">MODERATION</span>
                 <h2>관리자 도구</h2>
               </div>
               <span className="admin-tag">ADMIN</span>
@@ -796,7 +789,6 @@ export default function App() {
         )}
 
         <footer>
-          <span>mulay <b>·</b> 음악으로 연결되는 공간</span>
           <span>각 영상은 YouTube 공식 플레이어로 재생됩니다.</span>
         </footer>
       </main>
