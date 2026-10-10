@@ -31,6 +31,7 @@ export default function App() {
   const playerHost = useRef<HTMLDivElement>(null)
   const previousPlayerState = useRef<number | null>(null)
   const loadedVideo = useRef<string | null>(null)
+  const awaitingSync = useRef(false)
   const currentRoom = useRef(room)
   currentRoom.current = room
 
@@ -38,10 +39,16 @@ export default function App() {
     fetch('/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
     const s = io({ withCredentials: true, reconnection: true })
     socket.current = s
-    s.on('connect', () => { setOnline(true); s.emit('sync:request') })
+    s.on('connect', () => { setOnline(true); awaitingSync.current = true; s.emit('sync:request') })
     s.on('disconnect', () => setOnline(false))
     s.on('connect_error', (e: Error) => { setOnline(false); if (e.message) setNotice(e.message) })
-    s.on('room:state', (next: Room) => setRoom(next))
+    s.on('room:state', (next: Room) => {
+      setRoom(next)
+      if (awaitingSync.current) {
+        awaitingSync.current = false
+        if (next.current && loadedVideo.current === next.current.videoId) window.setTimeout(() => { try { player.current?.seekTo(position(next), true) } catch { /* Player may still be initializing. */ } }, 500)
+      }
+    })
     s.on('chat:message', (m: Message) => setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) })))
     s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })); setNotice('공지: ' + a.text) })
     s.on('playback:resynced', () => setNotice('재생 위치를 다시 동기화했어요.'))
@@ -71,7 +78,14 @@ export default function App() {
         width: '100%', height: '100%', videoId: '',
         playerVars: { autoplay: 1, playsinline: 1, rel: 0, origin: window.location.origin },
         events: {
-          onReady: () => { loadedVideo.current = null },
+          onReady: () => {
+            loadedVideo.current = null
+            const current = currentRoom.current.current
+            if (current && player.current) {
+              loadedVideo.current = current.videoId
+              player.current.loadVideoById({ videoId: current.videoId, startSeconds: position(currentRoom.current) })
+            }
+          },
           onStateChange: (event: { data: number; target: Player }) => {
             const states = window.YT?.PlayerState
             if (states && event.data === states.ENDED) {
