@@ -210,6 +210,8 @@ const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('stop') }),
 ])
 io.use((socket, next) => {
+  const origin = socket.handshake.headers.origin
+  if (origin && origin !== WEB_ORIGIN) return next(new Error('origin not allowed'))
   const user = getUser(socket)
   if (!user) return next(new Error('로그인 필요'))
   if (state.bannedUsers.includes(user.id)) return next(new Error('이용이 제한된 계정'))
@@ -276,10 +278,13 @@ io.on('connection', (socket) => {
     ack?.({ ok: true })
   })
   socket.on('playback:ad-resync', async (raw: unknown) => {
+    if (!allowSocketEvent(user.id, 'playback:ad-resync', 2, 60_000)) return
     const parsed = z.object({ videoId: videoIdSchema, currentTime: z.number().finite().min(0).max(86400) }).safeParse(raw)
     if (!parsed.success || !state.current || state.current.videoId !== parsed.data.videoId) return
     const now = Date.now()
     if (now - (state.startedAt ?? 0) < 15_000) return
+    const expected = Math.max(0, (now - (state.startedAt ?? now)) / 1000)
+    if (Math.abs(parsed.data.currentTime - expected) < 2) return
     state.startedAt = now - parsed.data.currentTime * 1000
     state.paused = false
     state.pausedAt = null
