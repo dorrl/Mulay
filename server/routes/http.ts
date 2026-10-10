@@ -6,6 +6,7 @@ import { WEB_ORIGIN } from '../config.js'
 import { connectedUsers } from '../runtime.js'
 import { state } from '../storage/room-store.js'
 import { publicState } from '../services/room.js'
+import { fetchVideoDurations } from '../services/youtube.js'
 export const registerHttpRoutes = (app: Router) => {
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
   app.get('/api/me', (req, res) => {
@@ -41,13 +42,17 @@ export const registerHttpRoutes = (app: Router) => {
         return res.status(502).json({ error: 'YouTube 검색에 실패했습니다.' })
       }
       const body = await response.json() as { items?: { id: { videoId?: string }; snippet: { title: string; channelTitle: string; thumbnails?: { medium?: { url?: string }; high?: { url?: string } } } }[] }
-      const items = (body.items ?? []).filter(item => item.id.videoId).map(item => ({
-        videoId: item.id.videoId!, title: item.snippet.title, channel: item.snippet.channelTitle,
-        thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.high?.url || '',
-      }))
+      const found = (body.items ?? []).filter(item => item.id.videoId)
+      const durations = await fetchVideoDurations(found.map(item => item.id.videoId!))
+      const items = found.flatMap(item => {
+        const videoId = item.id.videoId!
+        const durationSeconds = durations.get(videoId)
+        if (durationSeconds === undefined) return []
+        return [{ videoId, title: item.snippet.title, channel: item.snippet.channelTitle, thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.high?.url || '', durationSeconds }]
+      })
       res.json({ items })
     } catch {
-      res.status(502).json({ error: 'YouTube 검색 서버에 연결할 수 없습니다.' })
+      res.status(502).json({ error: 'YouTube 검색 또는 영상 길이 확인에 실패했습니다.' })
     }
   })
   app.get('/api/admin/users', requireUser, requireAdmin, (_req, res) => {

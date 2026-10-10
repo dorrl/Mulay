@@ -6,6 +6,7 @@ import { allowSocketEvent, connectedUsers } from '../runtime.js'
 import { state, persist } from '../storage/room-store.js'
 import type { ChatMessage } from '../types.js'
 import { broadcastState, getUser, promoteNext, publicChatMessage, publicState, safeUser, toTrack } from '../services/room.js'
+import { fetchVideoDurations } from '../services/youtube.js'
 const videoIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{11}$/)
 const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional() })
 const chatSchema = z.string().trim().min(1).max(500)
@@ -20,42 +21,58 @@ export const registerSocketHandlers = (io: Server) => {
     const origin = socket.handshake.headers.origin
     if (origin && origin !== WEB_ORIGIN) return next(new Error('origin not allowed'))
     const user = getUser(socket)
-    if (!user) return next(new Error('로그인 필요'))
-    if (state.bannedUsers.includes(user.id)) return next(new Error('이용이 제한된 계정'))
+    if (user && state.bannedUsers.includes(user.id)) return next(new Error('이용이 제한된 계정'))
     next()
   })
   io.on('connection', socket => {
-    const user = getUser(socket)!
-    connectedUsers.set(socket.id, user)
+    const user = getUser(socket)
+    const actorId = user?.id ?? `guest:${socket.id}`
+    if (user) connectedUsers.set(socket.id, user)
     socket.on('disconnect', () => connectedUsers.delete(socket.id))
-    socket.emit('room:state', publicState()); socket.emit('user:profile', safeUser(user))
+    socket.emit('room:state', publicState())
+    if (user) socket.emit('user:profile', safeUser(user))
     socket.on('sync:request', () => socket.emit('room:state', publicState()))
     socket.on('playback:ended', (raw: unknown) => {
-      if (!allowSocketEvent(user.id, 'playback:ended', 2, 60000)) return
+      if (!allowSocketEvent(actorId, 'playback:ended', 2, 60000)) return
       const parsed = z.object({ videoId: videoIdSchema }).safeParse(raw)
       if (!parsed.success || state.current?.videoId !== parsed.data.videoId) return
       if (Date.now() - (state.startedAt ?? Date.now()) < 30000) return
       promoteNext(io)
     })
     socket.on('queue:add', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+      if (!user) return ack?.({ ok: false, error: '영상을 추가하려면 로그인이 필요합니다.' })
       if (!allowSocketEvent(user.id, 'queue:add', 10, 60000)) return ack?.({ ok: false, error: '영상 추가 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' })
       const parsed = addSchema.safeParse(raw)
       if (!parsed.success) return ack?.({ ok: false, error: '영상 정보가 올바르지 않습니다.' })
       const now = Date.now()
+      const lastUserAdded = state.history.filter(item => item.addedBy === user.id).reduce((latest, item) => Math.max(latest, item.addedAt), 0)
+      const cooldownRemaining = 5 * 60 * 1000 - (now - lastUserAdded)
+      if (cooldownRemaining > 0) return ack?.({ ok: false, error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(cooldownRemaining / 60000)}분 후 다시 시도하세요.` })
       const lastAdded = state.history.filter(item => item.videoId === parsed.data.videoId).reduce((latest, item) => Math.max(latest, item.addedAt), 0)
       if (now - lastAdded < 6 * 60 * 60 * 1000) {
         const hours = Math.ceil((6 * 60 * 60 * 1000 - (now - lastAdded)) / 3600000)
         return ack?.({ ok: false, error: '같은 영상은 6시간마다 추가할 수 있습니다. 약 ' + hours + '시간 후 다시 시도하세요.' })
       }
       if (state.queue.length >= 100) return ack?.({ ok: false, error: '대기열이 가득 찼습니다.' })
-      const track = toTrack(parsed.data.videoId, parsed.data.title, parsed.data.channel, parsed.data.thumbnail || '', user)
-      state.history.push({ videoId: track.videoId, addedAt: now })
+      let durationSeconds: number | undefined
+      try { const durations = await fetchVideoDurations([parsed.data.videoId]); durationSeconds = durations.get(parsed.data.videoId) }
+      catch { return ack?.({ ok: false, error: '영상 길이를 확인하지 못했습니다. 잠시 후 다시 시도하세요.' }) }
+      if (durationSeconds === undefined) return ack?.({ ok: false, error: '영상 길이를 확인할 수 없습니다.' })
+      if (durationSeconds > 600) return ack?.({ ok: false, error: '10분을 초과하는 영상은 추가할 수 없습니다.' })
+      const checkedAt = Date.now()
+      const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
+      if (checkedAt - recentUserAdd < 5 * 60 * 1000) { const remaining = 5 * 60 * 1000 - (checkedAt - recentUserAdd); return ack?.({ ok: false, error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(remaining / 60000)}분 후 다시 시도하세요.` }) }
+      const recentSameVideo = state.history.reduce((latest, item) => item.videoId === parsed.data.videoId ? Math.max(latest, item.addedAt) : latest, 0)
+      if (checkedAt - recentSameVideo < 6 * 60 * 60 * 1000) { const hours = Math.ceil((6 * 60 * 60 * 1000 - (checkedAt - recentSameVideo)) / 3600000); return ack?.({ ok: false, error: '같은 영상은 6시간마다 추가할 수 있습니다. 약 ' + hours + '시간 후 다시 시도하세요.' }) }
+      const track = toTrack(parsed.data.videoId, parsed.data.title, parsed.data.channel, parsed.data.thumbnail || '', user, durationSeconds)
+      state.history.push({ videoId: track.videoId, addedAt: checkedAt, addedBy: user.id })
       state.history = state.history.filter(item => item.addedAt > now - 30 * 24 * 60 * 60 * 1000)
       if (!state.current) { state.current = track; state.startedAt = now; state.paused = false; state.pausedAt = null }
       else state.queue.push(track)
       await persist(); broadcastState(io); ack?.({ ok: true })
     })
     socket.on('queue:vote', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+      if (!user) return ack?.({ ok: false, error: '투표하려면 로그인이 필요합니다.' })
       if (!allowSocketEvent(user.id, 'queue:vote', 60, 60000)) return ack?.({ ok: false, error: '투표 요청이 너무 많습니다.' })
       const parsed = z.object({ trackId: z.string().uuid(), vote: z.union([z.literal(1), z.literal(-1), z.literal(0)]) }).safeParse(raw)
       if (!parsed.success) return ack?.({ ok: false, error: '투표 값이 올바르지 않습니다.' })
@@ -66,6 +83,7 @@ export const registerSocketHandlers = (io: Server) => {
       await persist(); broadcastState(io); ack?.({ ok: true })
     })
     socket.on('chat:send', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+      if (!user) return ack?.({ ok: false, error: '채팅하려면 로그인이 필요합니다.' })
       if (!allowSocketEvent(user.id, 'chat:send', 6, 10000)) return ack?.({ ok: false, error: '채팅을 너무 빠르게 보내고 있어요.' })
       const parsed = chatSchema.safeParse(raw)
       if (!parsed.success) return ack?.({ ok: false, error: '채팅은 1~500자로 입력하세요.' })
@@ -74,6 +92,7 @@ export const registerSocketHandlers = (io: Server) => {
       await persist(); io.emit('chat:message', publicChatMessage(message)); ack?.({ ok: true })
     })
     socket.on('playback:ad-resync', async (raw: unknown) => {
+      if (!user) return
       if (!allowSocketEvent(user.id, 'playback:ad-resync', 2, 60000)) return
       const parsed = z.object({ videoId: videoIdSchema, currentTime: z.number().finite().min(0).max(86400) }).safeParse(raw)
       if (!parsed.success || !state.current || state.current.videoId !== parsed.data.videoId) return
@@ -88,6 +107,7 @@ export const registerSocketHandlers = (io: Server) => {
       broadcastState(io)
     })
     socket.on('admin:command', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
+      if (!user) return ack?.({ ok: false, error: '관리자 권한이 필요합니다.' })
       if (!allowSocketEvent(user.id, 'admin:command', 20, 60000)) return ack?.({ ok: false, error: '관리자 명령 요청이 너무 많습니다.' })
       if (!user.admin) return ack?.({ ok: false, error: '관리자 권한이 필요합니다.' })
       const parsed = commandSchema.safeParse(raw)
