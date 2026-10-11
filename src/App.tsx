@@ -734,6 +734,45 @@ export default function App() {
             </button>
           </form>
         </section>
+
+          <section className="queue-section panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>대기열 <span className="count">{room.queue.length}</span></h2>
+                        </div>
+                      </div>
+          
+                      {!room.queue.length ? (
+                        <div className="empty-list">
+                          대기 중인 노래가 없어요.
+                          <br />
+                          첫 곡을 추천해 주세요.
+                        </div>
+                      ) : (
+                        <div className="queue-list">
+                          {room.queue.map((track, index) => (
+                            <article className="queue-row" key={track.id}>
+                              <span className="queue-index">
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <img src={track.thumbnail} alt="" />
+                              <div className="queue-info">
+                                <strong>{track.title}</strong>
+                                <span>{track.channel}</span>
+                              </div>
+                              <div className="vote-actions">
+                                <button title="좋아요" onClick={() => vote(track, 1)}>
+                                  ↑ <span>{track.likes}</span>
+                                </button>
+                                <button title="싫어요" onClick={() => vote(track, -1)}>
+                                  ↓ <span>{track.dislikes}</span>
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </section>
         </div>
 
         <section className="search-section">
@@ -807,44 +846,7 @@ export default function App() {
         </section>
 
         <div className="lower-grid">
-          <section className="queue-section panel">
-            <div className="section-heading">
-              <div>
-                <h2>대기열 <span className="count">{room.queue.length}</span></h2>
-              </div>
-            </div>
-
-            {!room.queue.length ? (
-              <div className="empty-list">
-                대기 중인 노래가 없어요.
-                <br />
-                첫 곡을 추천해 주세요.
-              </div>
-            ) : (
-              <div className="queue-list">
-                {room.queue.map((track, index) => (
-                  <article className="queue-row" key={track.id}>
-                    <span className="queue-index">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <img src={track.thumbnail} alt="" />
-                    <div className="queue-info">
-                      <strong>{track.title}</strong>
-                      <span>{track.channel}</span>
-                    </div>
-                    <div className="vote-actions">
-                      <button title="좋아요" onClick={() => vote(track, 1)}>
-                        ↑ <span>{track.likes}</span>
-                      </button>
-                      <button title="싫어요" onClick={() => vote(track, -1)}>
-                        ↓ <span>{track.dislikes}</span>
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
+          
 
 
         </div>
