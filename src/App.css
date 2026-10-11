@@ -646,3 +646,117 @@ main {
   color: #f1f0f5;
   background: #ffffff12;
 }
+
+
+/* Watch layout: give chat the full content width normally, and dock it beside
+   the player when the whole watch area enters fullscreen. */
+.watch-layout {
+  min-width: 0;
+}
+.watch-layout > .player-card {
+  width: 100%;
+}
+.watch-layout > .chat-section {
+  width: 100%;
+  height: 420px;
+  margin-top: 18px;
+}
+.lower-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.watch-layout:fullscreen {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  gap: 14px;
+  width: 100vw;
+  height: 100vh;
+  padding: 14px;
+  overflow: hidden;
+  background: #101014;
+}
+.watch-layout:fullscreen > .player-card {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .9fr);
+  align-items: stretch;
+  border-radius: 12px;
+}
+.watch-layout:fullscreen .player-frame {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  align-self: center;
+  aspect-ratio: 16 / 9;
+}
+.watch-layout:fullscreen #youtube-player,
+.watch-layout:fullscreen #youtube-player iframe {
+  width: 100%;
+  height: 100%;
+}
+.watch-layout:fullscreen > .chat-section {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 16px;
+  border-radius: 12px;
+}
+.watch-layout:fullscreen .chat-messages {
+  min-height: 0;
+  height: auto;
+}
+.watch-layout:fullscreen .now-playing {
+  min-width: 0;
+  padding: 20px;
+}
+.watch-layout:fullscreen .track-title {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .watch-layout:fullscreen {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 30vw);
+    gap: 10px;
+    padding: 10px;
+  }
+  .watch-layout:fullscreen > .player-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow-y: auto;
+  }
+  .watch-layout:fullscreen .player-frame {
+    align-self: start;
+  }
+  .watch-layout:fullscreen .now-playing {
+    border-left: 0;
+    border-top: 1px solid #ffffff0b;
+  }
+}
+@media (max-width: 600px) {
+  .watch-layout > .chat-section {
+    height: 380px;
+  }
+  .watch-layout:fullscreen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(180px, 36vh);
+    padding: 8px;
+    gap: 8px;
+  }
+  .watch-layout:fullscreen > .player-card {
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .watch-layout:fullscreen > .player-card .now-playing {
+    display: none;
+  }
+  .watch-layout:fullscreen .player-frame {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .watch-layout:fullscreen > .chat-section {
+    padding: 10px;
+  }
+}
