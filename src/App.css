@@ -625,3 +625,24 @@ main {
   color: #f1f0f5;
   background: #ffffff0d;
 }
+
+
+/* Keep the clear action visually secondary to the main search button. */
+.search-form .search-clear-button {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #8f8e9b;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: none;
+}
+.search-form .search-clear-button:hover {
+  color: #f1f0f5;
+  background: #ffffff12;
+}
