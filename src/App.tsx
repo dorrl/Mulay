@@ -157,7 +157,12 @@ export default function App() {
   const [online, setOnline] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [localPaused, setLocalPaused] = useState(false)
-  const [volume, setVolume] = useState(70)
+  const [volume, setVolume] = useState(() => {
+    const savedVolume = window.localStorage.getItem('mulay-volume')
+    if (savedVolume === null) return 70
+    const parsedVolume = Number(savedVolume)
+    return Number.isFinite(parsedVolume) ? Math.min(100, Math.max(0, parsedVolume)) : 70
+  })
   const [playbackTime, setPlaybackTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const localPausedRef = useRef(false)
@@ -353,6 +358,7 @@ export default function App() {
 
   useEffect(() => {
     player.current?.setVolume?.(volume)
+    window.localStorage.setItem('mulay-volume', String(volume))
   }, [volume])
 
   useEffect(() => {
