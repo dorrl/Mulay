@@ -525,6 +525,7 @@ export default function App() {
           </div>
         )}
 
+        <div className="watch-layout">
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
@@ -534,8 +535,7 @@ export default function App() {
               aria-label="전체 화면"
               title="전체 화면"
               onClick={() => {
-                const frame = document.querySelector('.player-frame')
-                console.log(frame)
+                const frame = document.querySelector('.watch-layout')
                 if (!frame) return
                 if (document.fullscreenElement) {
                   void document.exitFullscreen().catch(() => {
@@ -673,6 +673,108 @@ export default function App() {
           </div>
         </section>
 
+        <section className="chat-section panel">
+          <div className="section-heading">
+            <div>
+              <h2>채팅</h2>
+            </div>
+          </div>
+
+          <div className="chat-messages" ref={chatMessagesRef}>
+            {room.chat.map((message) => (
+              <div
+                className={[
+                  'chat-message',
+                  message.admin ? 'is-admin' : '',
+                  message.senderSocketId && message.senderSocketId === socket.current?.id
+                    ? 'is-own'
+                    : '',
+                ].filter(Boolean).join(' ')}
+                key={message.id}
+              >
+                {message.avatar ? (
+                  <img src={message.avatar} alt="" />
+                ) : (
+                  <span className="avatar-fallback">{message.name.slice(0, 1)}</span>
+                )}
+                <div className="chat-copy">
+                  <div>
+                    <strong>{message.name}</strong>
+                    {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
+                    {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                      <span className="chat-own-badge">나</span>
+                    )}
+                    <time>
+                      {new Date(message.at).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                  </div>
+                  <p>{message.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form className="chat-form" onSubmit={sendChat}>
+            <input
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'}
+              maxLength={500}
+              disabled={!user}
+            />
+            <button
+              type="submit"
+              disabled={!user || !chatInput.trim()}
+              aria-label="채팅 보내기"
+            >
+              ↗
+            </button>
+          </form>
+        </section>
+
+          <section className="queue-section panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>대기열 <span className="count">{room.queue.length}</span></h2>
+                        </div>
+                      </div>
+          
+                      {!room.queue.length ? (
+                        <div className="empty-list">
+                          대기 중인 노래가 없어요.
+                          <br />
+                          첫 곡을 추천해 주세요.
+                        </div>
+                      ) : (
+                        <div className="queue-list">
+                          {room.queue.map((track, index) => (
+                            <article className="queue-row" key={track.id}>
+                              <span className="queue-index">
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <img src={track.thumbnail} alt="" />
+                              <div className="queue-info">
+                                <strong>{track.title}</strong>
+                                <span>{track.channel}</span>
+                              </div>
+                              <div className="vote-actions">
+                                <button title="좋아요" onClick={() => vote(track, 1)}>
+                                  ↑ <span>{track.likes}</span>
+                                </button>
+                                <button title="싫어요" onClick={() => vote(track, -1)}>
+                                  ↓ <span>{track.dislikes}</span>
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+        </div>
+
         <section className="search-section">
           <div className="section-heading">
             <div>
@@ -744,106 +846,9 @@ export default function App() {
         </section>
 
         <div className="lower-grid">
-          <section className="queue-section panel">
-            <div className="section-heading">
-              <div>
-                <h2>대기열 <span className="count">{room.queue.length}</span></h2>
-              </div>
-            </div>
+          
 
-            {!room.queue.length ? (
-              <div className="empty-list">
-                대기 중인 노래가 없어요.
-                <br />
-                첫 곡을 추천해 주세요.
-              </div>
-            ) : (
-              <div className="queue-list">
-                {room.queue.map((track, index) => (
-                  <article className="queue-row" key={track.id}>
-                    <span className="queue-index">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <img src={track.thumbnail} alt="" />
-                    <div className="queue-info">
-                      <strong>{track.title}</strong>
-                      <span>{track.channel}</span>
-                    </div>
-                    <div className="vote-actions">
-                      <button title="좋아요" onClick={() => vote(track, 1)}>
-                        ↑ <span>{track.likes}</span>
-                      </button>
-                      <button title="싫어요" onClick={() => vote(track, -1)}>
-                        ↓ <span>{track.dislikes}</span>
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
 
-          <section className="chat-section panel">
-            <div className="section-heading">
-              <div>
-                <h2>채팅</h2>
-              </div>
-            </div>
-
-            <div className="chat-messages" ref={chatMessagesRef}>
-              {room.chat.map((message) => (
-                <div
-                  className={[
-                    'chat-message',
-                    message.admin ? 'is-admin' : '',
-                    message.senderSocketId && message.senderSocketId === socket.current?.id
-                      ? 'is-own'
-                      : '',
-                  ].filter(Boolean).join(' ')}
-                  key={message.id}
-                >
-                  {message.avatar ? (
-                    <img src={message.avatar} alt="" />
-                  ) : (
-                    <span className="avatar-fallback">{message.name.slice(0, 1)}</span>
-                  )}
-                  <div className="chat-copy">
-                    <div>
-                      <strong>{message.name}</strong>
-                      {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
-                      {message.senderSocketId && message.senderSocketId === socket.current?.id && (
-                        <span className="chat-own-badge">나</span>
-                      )}
-                      <time>
-                        {new Date(message.at).toLocaleTimeString('ko-KR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </time>
-                    </div>
-                    <p>{message.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form className="chat-form" onSubmit={sendChat}>
-              <input
-                value={chatInput}
-                onChange={(event) => setChatInput(event.target.value)}
-                placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'}
-                maxLength={500}
-                disabled={!user}
-              />
-              <button
-                type="submit"
-                disabled={!user || !chatInput.trim()}
-                aria-label="채팅 보내기"
-              >
-                ↗
-              </button>
-            </form>
-          </section>
         </div>
 
         {user?.admin && (
@@ -915,8 +920,21 @@ export default function App() {
           </section>
         )}
 
-        <footer>
+        <footer className="site-footer">
           <span>각 영상은 YouTube 공식 플레이어로 재생됩니다.</span>
+          <a
+            className="source-link"
+            href="https://github.com/dorrl/Mulay"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Mulay 소스 코드 GitHub"
+            title="소스 코드 보기"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.54v-2.08c-3.1.67-3.75-1.32-3.75-1.32-.5-1.29-1.24-1.63-1.24-1.63-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 .1.99 2.08 3.29 1.58.1-.72.39-1.21.7-1.49-2.48-.28-5.09-1.24-5.09-5.53 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.12-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.78 1.15 3 0 4.3-2.62 5.25-5.11 5.52.4.35.75 1.03.75 2.08v3.08c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/>
+            </svg>
+            <span>소스 코드</span>
+          </a>
         </footer>
       </main>
     </div>
