@@ -686,10 +686,32 @@ export default function App() {
             <span className="search-icon">⌕</span>
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                setQuery(value)
+                if (!value.trim()) {
+                  setResults([])
+                  setSearchError('')
+                }
+              }}
               placeholder="노래 제목, 아티스트 검색"
               maxLength={100}
             />
+            {query && (
+              <button
+                className="search-clear-button"
+                type="button"
+                aria-label="검색어 지우기"
+                title="검색어 지우기"
+                onClick={() => {
+                  setQuery('')
+                  setResults([])
+                  setSearchError('')
+                }}
+              >
+                ×
+              </button>
+            )}
             <button type="submit" disabled={searching}>
               {searching ? '검색 중…' : '검색'}
             </button>
