@@ -521,3 +521,46 @@ main {
   width: 100%;
   height: 100%;
 }
+
+
+/* Compact desktop player details while preserving the 16:9 video. */
+@media (min-width: 681px) {
+  .player-card {
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+    align-items: stretch;
+  }
+  .player-frame {
+    align-self: center;
+    aspect-ratio: 16 / 9;
+  }
+  .now-playing {
+    justify-content: flex-start;
+    padding: 20px 22px;
+    gap: 0;
+  }
+  .track-title {
+    margin-top: 11px;
+    font-size: clamp(17px, 1.65vw, 21px);
+    line-height: 1.28;
+  }
+  .track-subtitle { margin-top: 5px; }
+  .playback-meta { margin-top: 12px; }
+  .track-progress { margin-top: 13px; }
+  .track-added-by { margin-top: 10px; }
+  .local-player-controls { gap: 9px; margin-top: 12px; }
+  .local-play-toggle { padding: 7px 9px; }
+  .volume-control { flex-basis: 120px; min-width: 100px; gap: 7px; }
+  .current-votes { margin-top: 10px; }
+  .current-votes button { padding: 6px 8px; }
+  .admin-playback { flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .admin-playback button { padding: 6px 8px; }
+}
+@media (min-width: 681px) and (max-width: 820px) {
+  .player-card { grid-template-columns: minmax(0, 1fr); }
+  .player-frame { width: 100%; }
+  .now-playing {
+    border-left: 0;
+    border-top: 1px solid #ffffff0b;
+    padding: 20px;
+  }
+}
