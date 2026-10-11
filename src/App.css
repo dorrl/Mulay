@@ -760,3 +760,38 @@ main {
     padding: 10px;
   }
 }
+
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  color: #777783;
+  font-size: 11px;
+  line-height: 1;
+  text-decoration: none;
+  transition: color .16s ease;
+}
+.source-link svg {
+  width: 14px;
+  height: 14px;
+}
+.source-link:hover,
+.source-link:focus-visible {
+  color: #c6f277;
+}
+@media (max-width: 480px) {
+  .site-footer {
+    align-items: flex-start;
+  }
+  .source-link span {
+    display: none;
+  }
+}
