@@ -525,6 +525,7 @@ export default function App() {
           </div>
         )}
 
+        <div className="watch-layout">
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
@@ -534,8 +535,7 @@ export default function App() {
               aria-label="전체 화면"
               title="전체 화면"
               onClick={() => {
-                const frame = document.querySelector('.player-frame')
-                console.log(frame)
+                const frame = document.querySelector('.watch-layout')
                 if (!frame) return
                 if (document.fullscreenElement) {
                   void document.exitFullscreen().catch(() => {
@@ -673,6 +673,69 @@ export default function App() {
           </div>
         </section>
 
+        <section className="chat-section panel">
+          <div className="section-heading">
+            <div>
+              <h2>채팅</h2>
+            </div>
+          </div>
+
+          <div className="chat-messages" ref={chatMessagesRef}>
+            {room.chat.map((message) => (
+              <div
+                className={[
+                  'chat-message',
+                  message.admin ? 'is-admin' : '',
+                  message.senderSocketId && message.senderSocketId === socket.current?.id
+                    ? 'is-own'
+                    : '',
+                ].filter(Boolean).join(' ')}
+                key={message.id}
+              >
+                {message.avatar ? (
+                  <img src={message.avatar} alt="" />
+                ) : (
+                  <span className="avatar-fallback">{message.name.slice(0, 1)}</span>
+                )}
+                <div className="chat-copy">
+                  <div>
+                    <strong>{message.name}</strong>
+                    {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
+                    {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                      <span className="chat-own-badge">나</span>
+                    )}
+                    <time>
+                      {new Date(message.at).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                  </div>
+                  <p>{message.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form className="chat-form" onSubmit={sendChat}>
+            <input
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'}
+              maxLength={500}
+              disabled={!user}
+            />
+            <button
+              type="submit"
+              disabled={!user || !chatInput.trim()}
+              aria-label="채팅 보내기"
+            >
+              ↗
+            </button>
+          </form>
+        </section>
+        </div>
+
         <section className="search-section">
           <div className="section-heading">
             <div>
@@ -783,67 +846,7 @@ export default function App() {
             )}
           </section>
 
-          <section className="chat-section panel">
-            <div className="section-heading">
-              <div>
-                <h2>채팅</h2>
-              </div>
-            </div>
 
-            <div className="chat-messages" ref={chatMessagesRef}>
-              {room.chat.map((message) => (
-                <div
-                  className={[
-                    'chat-message',
-                    message.admin ? 'is-admin' : '',
-                    message.senderSocketId && message.senderSocketId === socket.current?.id
-                      ? 'is-own'
-                      : '',
-                  ].filter(Boolean).join(' ')}
-                  key={message.id}
-                >
-                  {message.avatar ? (
-                    <img src={message.avatar} alt="" />
-                  ) : (
-                    <span className="avatar-fallback">{message.name.slice(0, 1)}</span>
-                  )}
-                  <div className="chat-copy">
-                    <div>
-                      <strong>{message.name}</strong>
-                      {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
-                      {message.senderSocketId && message.senderSocketId === socket.current?.id && (
-                        <span className="chat-own-badge">나</span>
-                      )}
-                      <time>
-                        {new Date(message.at).toLocaleTimeString('ko-KR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </time>
-                    </div>
-                    <p>{message.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form className="chat-form" onSubmit={sendChat}>
-              <input
-                value={chatInput}
-                onChange={(event) => setChatInput(event.target.value)}
-                placeholder={user ? '메시지를 입력하세요…' : '로그인 후 채팅할 수 있어요'}
-                maxLength={500}
-                disabled={!user}
-              />
-              <button
-                type="submit"
-                disabled={!user || !chatInput.trim()}
-                aria-label="채팅 보내기"
-              >
-                ↗
-              </button>
-            </form>
-          </section>
         </div>
 
         {user?.admin && (
