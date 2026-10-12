@@ -180,6 +180,17 @@ export default function App() {
   currentRoom.current = room
 
   useEffect(() => {
+    const syncFullscreenClass = () => {
+      document.querySelector('.watch-layout')?.classList.toggle(
+        'is-fullscreen',
+        document.fullscreenElement === document.querySelector('.watch-layout'),
+      )
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenClass)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenClass)
+  }, [])
+
+  useEffect(() => {
     const messages = chatMessagesRef.current
     if (messages) messages.scrollTop = messages.scrollHeight
   }, [room.chat])
