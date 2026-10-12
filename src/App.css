@@ -1690,3 +1690,42 @@ main {
   outline: 2px solid #c6f277;
   outline-offset: 2px;
 }
+
+
+/* Short-lived corner toast for routine feedback; announcements stay in the page. */
+.notice.toast-notice {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 10000;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 32px));
+  margin: 0;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #202127f2;
+  border: 1px solid #c6f27755;
+  color: #e0f6bd;
+  box-shadow: 0 12px 40px #0007;
+  backdrop-filter: blur(12px);
+  animation: notice-toast-in 180ms ease-out both;
+}
+.notice.toast-notice > span {
+  overflow-wrap: anywhere;
+}
+.notice.toast-notice button {
+  flex: 0 0 auto;
+  padding: 0 2px;
+  cursor: pointer;
+}
+@keyframes notice-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 600px) {
+  .notice.toast-notice {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+  }
+}
