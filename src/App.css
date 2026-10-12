@@ -1519,3 +1519,19 @@ main {
     display: none;
   }
 }
+
+
+/* Keep the current user's yellow highlight even when they are an administrator. */
+.chat-message.is-admin.is-own {
+  background: linear-gradient(100deg, #c6f27718, #c6f27708);
+  border-color: #c6f27745;
+  box-shadow: inset 2px 0 #c6f277;
+}
+.chat-message.is-admin.is-own .chat-copy > div > strong {
+  color: #d8f5a6;
+}
+.chat-message.is-admin.is-own .chat-own-badge {
+  color: #d9f7a5;
+  background: #c6f27718;
+  border-color: #c6f27735;
+}
