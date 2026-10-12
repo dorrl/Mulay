@@ -1446,3 +1446,76 @@ main {
     grid-row: 4;
   }
 }
+
+
+/* Give now-playing enough room in fullscreen without shrinking the video too much. */
+.watch-layout:fullscreen {
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.5fr) minmax(260px, 1fr) clamp(300px, 23vw, 360px);
+  grid-template-rows: minmax(0, 1fr) 220px;
+}
+.watch-layout:fullscreen .player-frame {
+  width: min(100%, calc((100dvh - 280px) * 16 / 9));
+  max-height: calc(100dvh - 280px);
+}
+.watch-layout:fullscreen .now-playing {
+  padding: 18px;
+  gap: 2px;
+}
+.watch-layout:fullscreen .now-playing .track-title {
+  font-size: clamp(17px, 1.2vw, 21px);
+  line-height: 1.35;
+  -webkit-line-clamp: 3;
+}
+.watch-layout:fullscreen .now-playing .track-subtitle {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.watch-layout:fullscreen .track-added-by,
+.watch-layout:fullscreen .current-votes {
+  display: flex;
+}
+.watch-layout:fullscreen .track-added-by {
+  margin-top: 10px;
+}
+.watch-layout:fullscreen .current-votes {
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.watch-layout:fullscreen .local-player-controls,
+.watch-layout:fullscreen .admin-playback {
+  gap: 6px;
+}
+@media (max-width: 1250px) {
+  .watch-layout:fullscreen {
+    grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1.4fr) minmax(220px, 1fr) minmax(250px, 280px);
+    grid-template-rows: minmax(0, 1fr) 205px;
+  }
+  .watch-layout:fullscreen .player-frame {
+    width: min(100%, calc((100dvh - 265px) * 16 / 9));
+    max-height: calc(100dvh - 265px);
+  }
+  .watch-layout:fullscreen .now-playing {
+    padding: 12px;
+  }
+}
+@media (max-width: 950px) {
+  .watch-layout:fullscreen {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 34vw);
+    grid-template-rows: minmax(0, 1fr) 190px;
+  }
+  .watch-layout:fullscreen .player-frame {
+    width: 100%;
+    max-height: none;
+  }
+}
+@media (max-width: 650px) {
+  .watch-layout:fullscreen {
+    grid-template-rows: minmax(0, 1fr) 155px 150px 220px;
+  }
+  .watch-layout:fullscreen .track-added-by,
+  .watch-layout:fullscreen .current-votes {
+    display: none;
+  }
+}
