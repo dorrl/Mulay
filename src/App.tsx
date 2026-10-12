@@ -526,6 +526,7 @@ export default function App() {
         )}
 
         <div className="watch-layout">
+          <div className="watch-main">
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
@@ -673,6 +674,116 @@ export default function App() {
           </div>
         </section>
 
+            <div className="watch-secondary">
+              <section className="queue-section panel">
+                          <div className="section-heading">
+                            <div>
+                              <h2>대기열 <span className="count">{room.queue.length}</span></h2>
+                            </div>
+                          </div>
+              
+                          {!room.queue.length ? (
+                            <div className="empty-list">
+                              대기 중인 노래가 없어요.
+                              <br />
+                              첫 곡을 추천해 주세요.
+                            </div>
+                          ) : (
+                            <div className="queue-list">
+                              {room.queue.map((track, index) => (
+                                <article className="queue-row" key={track.id}>
+                                  <span className="queue-index">
+                                    {String(index + 1).padStart(2, '0')}
+                                  </span>
+                                  <img src={track.thumbnail} alt="" />
+                                  <div className="queue-info">
+                                    <strong>{track.title}</strong>
+                                    <span>{track.channel}</span>
+                                  </div>
+                                  <div className="vote-actions">
+                                    <button title="좋아요" onClick={() => vote(track, 1)}>
+                                      ↑ <span>{track.likes}</span>
+                                    </button>
+                                    <button title="싫어요" onClick={() => vote(track, -1)}>
+                                      ↓ <span>{track.dislikes}</span>
+                                    </button>
+                                  </div>
+                                </article>
+                              ))}
+                            </div>
+                          )}
+                        </section>              <section className="search-section">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">DISCOVER</span>
+                    <h2>어떤 노래를 들을까요?</h2>
+                  </div>
+                  <span className="muted small">YouTube에서 검색</span>
+                </div>
+
+                <form className="search-form" onSubmit={search}>
+                  <span className="search-icon">⌕</span>
+                  <input
+                    value={query}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setQuery(value)
+                      if (!value.trim()) {
+                        setResults([])
+                        setSearchError('')
+                      }
+                    }}
+                    placeholder="노래 제목, 아티스트 검색"
+                    maxLength={100}
+                  />
+                  {query && (
+                    <button
+                      className="search-clear-button"
+                      type="button"
+                      aria-label="검색어 지우기"
+                      title="검색어 지우기"
+                      onClick={() => {
+                        setQuery('')
+                        setResults([])
+                        setSearchError('')
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                  <button type="submit" disabled={searching}>
+                    {searching ? '검색 중…' : '검색'}
+                  </button>
+                </form>
+
+                {searchError && <p className="inline-message">{searchError}</p>}
+                {results.length > 0 && (
+                  <div className="search-results">
+                    {results.map((track) => (
+                      <article className="result-row" key={track.videoId}>
+                        <img src={track.thumbnail} alt="" />
+                        <div className="result-info">
+                          <strong>{track.title}</strong>
+                          <span>
+                            {track.channel} · {Math.floor(track.durationSeconds / 60)}:
+                            {String(track.durationSeconds % 60).padStart(2, '0')}
+                          </span>
+                        </div>
+                        <button
+                          className="add-button"
+                          disabled={track.durationSeconds > 600}
+                          onClick={() => add(track)}
+                        >
+                          {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+            </div>
+          </div>
         <section className="chat-section panel">
           <div className="section-heading">
             <div>
@@ -735,115 +846,7 @@ export default function App() {
           </form>
         </section>
 
-          <section className="queue-section panel">
-                      <div className="section-heading">
-                        <div>
-                          <h2>대기열 <span className="count">{room.queue.length}</span></h2>
-                        </div>
-                      </div>
-          
-                      {!room.queue.length ? (
-                        <div className="empty-list">
-                          대기 중인 노래가 없어요.
-                          <br />
-                          첫 곡을 추천해 주세요.
-                        </div>
-                      ) : (
-                        <div className="queue-list">
-                          {room.queue.map((track, index) => (
-                            <article className="queue-row" key={track.id}>
-                              <span className="queue-index">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <img src={track.thumbnail} alt="" />
-                              <div className="queue-info">
-                                <strong>{track.title}</strong>
-                                <span>{track.channel}</span>
-                              </div>
-                              <div className="vote-actions">
-                                <button title="좋아요" onClick={() => vote(track, 1)}>
-                                  ↑ <span>{track.likes}</span>
-                                </button>
-                                <button title="싫어요" onClick={() => vote(track, -1)}>
-                                  ↓ <span>{track.dislikes}</span>
-                                </button>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      )}
-                    </section>
         </div>
-
-        <section className="search-section">
-          <div className="section-heading">
-            <div>
-              <span className="section-kicker">DISCOVER</span>
-              <h2>어떤 노래를 들을까요?</h2>
-            </div>
-            <span className="muted small">YouTube에서 검색</span>
-          </div>
-
-          <form className="search-form" onSubmit={search}>
-            <span className="search-icon">⌕</span>
-            <input
-              value={query}
-              onChange={(event) => {
-                const value = event.target.value
-                setQuery(value)
-                if (!value.trim()) {
-                  setResults([])
-                  setSearchError('')
-                }
-              }}
-              placeholder="노래 제목, 아티스트 검색"
-              maxLength={100}
-            />
-            {query && (
-              <button
-                className="search-clear-button"
-                type="button"
-                aria-label="검색어 지우기"
-                title="검색어 지우기"
-                onClick={() => {
-                  setQuery('')
-                  setResults([])
-                  setSearchError('')
-                }}
-              >
-                ×
-              </button>
-            )}
-            <button type="submit" disabled={searching}>
-              {searching ? '검색 중…' : '검색'}
-            </button>
-          </form>
-
-          {searchError && <p className="inline-message">{searchError}</p>}
-          {results.length > 0 && (
-            <div className="search-results">
-              {results.map((track) => (
-                <article className="result-row" key={track.videoId}>
-                  <img src={track.thumbnail} alt="" />
-                  <div className="result-info">
-                    <strong>{track.title}</strong>
-                    <span>
-                      {track.channel} · {Math.floor(track.durationSeconds / 60)}:
-                      {String(track.durationSeconds % 60).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <button
-                    className="add-button"
-                    disabled={track.durationSeconds > 600}
-                    onClick={() => add(track)}
-                  >
-                    {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
 
         <div className="lower-grid">
           
