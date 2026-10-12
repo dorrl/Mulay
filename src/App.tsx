@@ -798,7 +798,8 @@ export default function App() {
                 className={[
                   'chat-message',
                   message.admin ? 'is-admin' : '',
-                  message.senderSocketId && message.senderSocketId === socket.current?.id
+                  (message.userId && message.userId === user?.id) ||
+                  (message.senderSocketId && message.senderSocketId === socket.current?.id)
                     ? 'is-own'
                     : '',
                 ].filter(Boolean).join(' ')}
@@ -813,7 +814,7 @@ export default function App() {
                   <div>
                     <strong>{message.name}</strong>
                     {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
-                    {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                    {((message.userId && message.userId === user?.id) || (message.senderSocketId && message.senderSocketId === socket.current?.id)) && (
                       <span className="chat-own-badge">나</span>
                     )}
                     <time>
