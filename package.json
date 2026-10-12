@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 0.0.0.0\"",
-    "dev:web": "vite --host 0.0.0.0",
+    "dev": "tsx watch server/index.ts",
     "dev:server": "tsx watch server/index.ts",
     "build": "tsc -p tsconfig.server.json && tsc -b && vite build",
     "start": "node dist/index.js",
@@ -40,7 +39,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
-    "concurrently": "^9.2.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",

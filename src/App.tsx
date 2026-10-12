@@ -146,6 +146,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [googleConfigured, setGoogleConfigured] = useState(false)
   const [room, setRoom] = useState<Room>(blank)
+  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({})
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searching, setSearching] = useState(false)
@@ -179,9 +180,26 @@ export default function App() {
   currentRoom.current = room
 
   useEffect(() => {
+    const syncFullscreenClass = () => {
+      document.querySelector('.watch-layout')?.classList.toggle(
+        'is-fullscreen',
+        document.fullscreenElement === document.querySelector('.watch-layout'),
+      )
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenClass)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenClass)
+  }, [])
+
+  useEffect(() => {
     const messages = chatMessagesRef.current
     if (messages) messages.scrollTop = messages.scrollHeight
   }, [room.chat])
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 3500)
+    return () => window.clearTimeout(timer)
+  }, [notice])
 
   useEffect(() => {
     fetch('/server/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
@@ -190,6 +208,7 @@ export default function App() {
     s.on('connect', () => { setOnline(true); awaitingSync.current = true; s.emit('sync:request') })
     s.on('disconnect', () => setOnline(false))
     s.on('connect_error', (e: Error) => { setOnline(false); if (e.message) setNotice(e.message) })
+    s.on('queue:my-votes', (votes: Record<string, 1 | -1>) => setMyVotes(votes))
     s.on('room:state', (next: Room) => {
       setRoom(next)
       if (awaitingSync.current) {
@@ -199,8 +218,16 @@ export default function App() {
         }, 500)
       }
     })
-    s.on('chat:message', (m: Message) => setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) })))
-    s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })); setNotice('공지: ' + a.text) })
+    s.on('chat:message', (m: Message) => {
+      if (m.senderSocketId === s.id) {
+        try {
+          const stored = JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]
+          window.localStorage.setItem('mulay-own-chat-ids', JSON.stringify([...stored.filter((id) => id !== m.id), m.id].slice(-500)))
+        } catch { /* Keep chat usable when storage is unavailable. */ }
+      }
+      setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) }))
+    })
+    s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })) })
     s.on('playback:resynced', () => setNotice('재생 위치를 다시 동기화했어요.'))
     return () => { s.disconnect(); socket.current = null }
   }, [])
@@ -227,6 +254,7 @@ export default function App() {
           rel: 0,
           origin: window.location.origin,
           controls: 0,
+          cc_load_policy: 0,
           disablekb: 1,
           fs: 0,
         },
@@ -427,6 +455,13 @@ export default function App() {
   }
 
   const vote = (track: Track, value: 1 | -1) => {
+    const nextVote = myVotes[track.id] === value ? 0 : value
+    setMyVotes((old) => {
+      const next = { ...old }
+      if (nextVote === 0) delete next[track.id]
+      else next[track.id] = nextVote
+      return next
+    })
     if (!user) {
       setNotice('투표하려면 로그인이 필요해요.')
       return
@@ -434,7 +469,7 @@ export default function App() {
 
     socket.current?.emit(
       'queue:vote',
-      { trackId: track.id, vote: value },
+      { trackId: track.id, vote: myVotes[track.id] === value ? 0 : value },
       (result: { ok: boolean; error?: string }) => {
         if (!result.ok) setNotice(result.error || '투표 실패')
       },
@@ -519,13 +554,14 @@ export default function App() {
           </div>
         )}
         {notice && (
-          <div className="notice" role="status">
+          <div className="notice toast-notice" role="status">
             <span>{notice}</span>
             <button onClick={() => setNotice('')} aria-label="알림 닫기">×</button>
           </div>
         )}
 
         <div className="watch-layout">
+          <div className="watch-main">
         <section className="player-card">
           <div className="player-frame">
             <div ref={playerHost} id="youtube-player" />
@@ -650,10 +686,10 @@ export default function App() {
 
             {room.current && (
               <div className="current-votes">
-                <button onClick={() => vote(room.current!, 1)}>
+                <button className={myVotes[room.current.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === 1} onClick={() => vote(room.current!, 1)}>
                   ↑ 좋아요 {room.current.likes}
                 </button>
-                <button onClick={() => vote(room.current!, -1)}>
+                <button className={myVotes[room.current.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === -1} onClick={() => vote(room.current!, -1)}>
                   ↓ 싫어요 {room.current.dislikes}
                 </button>
               </div>
@@ -673,6 +709,117 @@ export default function App() {
           </div>
         </section>
 
+            <div className="watch-secondary">
+              <section className="search-section">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">DISCOVER</span>
+                    <h2>어떤 노래를 들을까요?</h2>
+                  </div>
+                  <span className="muted small">YouTube에서 검색</span>
+                </div>
+
+                <form className="search-form" onSubmit={search}>
+                  <span className="search-icon">⌕</span>
+                  <input
+                    value={query}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setQuery(value)
+                      if (!value.trim()) {
+                        setResults([])
+                        setSearchError('')
+                      }
+                    }}
+                    placeholder="노래 제목, 아티스트 검색"
+                    maxLength={100}
+                  />
+                  {query && (
+                    <button
+                      className="search-clear-button"
+                      type="button"
+                      aria-label="검색어 지우기"
+                      title="검색어 지우기"
+                      onClick={() => {
+                        setQuery('')
+                        setResults([])
+                        setSearchError('')
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                  <button type="submit" disabled={searching}>
+                    {searching ? '검색 중…' : '검색'}
+                  </button>
+                </form>
+
+                {searchError && <p className="inline-message">{searchError}</p>}
+                {results.length > 0 && (
+                  <div className="search-results">
+                    {results.map((track) => (
+                      <article className="result-row" key={track.videoId}>
+                        <img src={track.thumbnail} alt="" />
+                        <div className="result-info">
+                          <strong>{track.title}</strong>
+                          <span>
+                            {track.channel} · {Math.floor(track.durationSeconds / 60)}:
+                            {String(track.durationSeconds % 60).padStart(2, '0')}
+                          </span>
+                        </div>
+                        <button
+                          className="add-button"
+                          disabled={track.durationSeconds > 600}
+                          onClick={() => add(track)}
+                        >
+                          {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+              <section className="queue-section panel">
+                <div className="section-heading">
+                  <div>
+                    <h2>대기열 <span className="count">{room.queue.length}</span></h2>
+                  </div>
+                </div>
+    
+                {!room.queue.length ? (
+                  <div className="empty-list">
+                    대기 중인 노래가 없어요.
+                    <br />
+                    첫 곡을 추천해 주세요.
+                  </div>
+                ) : (
+                  <div className="queue-list">
+                    {room.queue.map((track, index) => (
+                      <article className="queue-row" key={track.id}>
+                        <span className="queue-index">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <img src={track.thumbnail} alt="" />
+                        <div className="queue-info">
+                          <strong>{track.title}</strong>
+                          <span>{track.channel}</span>
+                        </div>
+                        <div className="vote-actions">
+                          <button className={myVotes[track.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === 1} title={myVotes[track.id] === 1 ? '좋아요 취소' : '좋아요'} onClick={() => vote(track, 1)}>
+                            ↑ <span>{track.likes}</span>
+                          </button>
+                          <button className={myVotes[track.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === -1} title={myVotes[track.id] === -1 ? '싫어요 취소' : '싫어요'} onClick={() => vote(track, -1)}>
+                            ↓ <span>{track.dislikes}</span>
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+            </div>
+          </div>
         <section className="chat-section panel">
           <div className="section-heading">
             <div>
@@ -686,7 +833,15 @@ export default function App() {
                 className={[
                   'chat-message',
                   message.admin ? 'is-admin' : '',
-                  message.senderSocketId && message.senderSocketId === socket.current?.id
+                  ((message.userId && message.userId === user?.id) ||
+                    (message.senderSocketId && message.senderSocketId === socket.current?.id) ||
+                    (() => {
+                      try {
+                        return (JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]).includes(message.id)
+                      } catch {
+                        return false
+                      }
+                    })())
                     ? 'is-own'
                     : '',
                 ].filter(Boolean).join(' ')}
@@ -701,7 +856,15 @@ export default function App() {
                   <div>
                     <strong>{message.name}</strong>
                     {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
-                    {message.senderSocketId && message.senderSocketId === socket.current?.id && (
+                    {((message.userId && message.userId === user?.id) ||
+                      (message.senderSocketId && message.senderSocketId === socket.current?.id) ||
+                      (() => {
+                        try {
+                          return (JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]).includes(message.id)
+                        } catch {
+                          return false
+                        }
+                      })()) && (
                       <span className="chat-own-badge">나</span>
                     )}
                     <time>
@@ -735,115 +898,7 @@ export default function App() {
           </form>
         </section>
 
-          <section className="queue-section panel">
-                      <div className="section-heading">
-                        <div>
-                          <h2>대기열 <span className="count">{room.queue.length}</span></h2>
-                        </div>
-                      </div>
-          
-                      {!room.queue.length ? (
-                        <div className="empty-list">
-                          대기 중인 노래가 없어요.
-                          <br />
-                          첫 곡을 추천해 주세요.
-                        </div>
-                      ) : (
-                        <div className="queue-list">
-                          {room.queue.map((track, index) => (
-                            <article className="queue-row" key={track.id}>
-                              <span className="queue-index">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <img src={track.thumbnail} alt="" />
-                              <div className="queue-info">
-                                <strong>{track.title}</strong>
-                                <span>{track.channel}</span>
-                              </div>
-                              <div className="vote-actions">
-                                <button title="좋아요" onClick={() => vote(track, 1)}>
-                                  ↑ <span>{track.likes}</span>
-                                </button>
-                                <button title="싫어요" onClick={() => vote(track, -1)}>
-                                  ↓ <span>{track.dislikes}</span>
-                                </button>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      )}
-                    </section>
         </div>
-
-        <section className="search-section">
-          <div className="section-heading">
-            <div>
-              <span className="section-kicker">DISCOVER</span>
-              <h2>어떤 노래를 들을까요?</h2>
-            </div>
-            <span className="muted small">YouTube에서 검색</span>
-          </div>
-
-          <form className="search-form" onSubmit={search}>
-            <span className="search-icon">⌕</span>
-            <input
-              value={query}
-              onChange={(event) => {
-                const value = event.target.value
-                setQuery(value)
-                if (!value.trim()) {
-                  setResults([])
-                  setSearchError('')
-                }
-              }}
-              placeholder="노래 제목, 아티스트 검색"
-              maxLength={100}
-            />
-            {query && (
-              <button
-                className="search-clear-button"
-                type="button"
-                aria-label="검색어 지우기"
-                title="검색어 지우기"
-                onClick={() => {
-                  setQuery('')
-                  setResults([])
-                  setSearchError('')
-                }}
-              >
-                ×
-              </button>
-            )}
-            <button type="submit" disabled={searching}>
-              {searching ? '검색 중…' : '검색'}
-            </button>
-          </form>
-
-          {searchError && <p className="inline-message">{searchError}</p>}
-          {results.length > 0 && (
-            <div className="search-results">
-              {results.map((track) => (
-                <article className="result-row" key={track.videoId}>
-                  <img src={track.thumbnail} alt="" />
-                  <div className="result-info">
-                    <strong>{track.title}</strong>
-                    <span>
-                      {track.channel} · {Math.floor(track.durationSeconds / 60)}:
-                      {String(track.durationSeconds % 60).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <button
-                    className="add-button"
-                    disabled={track.durationSeconds > 600}
-                    onClick={() => add(track)}
-                  >
-                    {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
 
         <div className="lower-grid">
           

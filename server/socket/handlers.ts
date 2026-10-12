@@ -33,8 +33,18 @@ export const registerSocketHandlers = (io: Server) => {
     if (user) connectedUsers.set(socket.id, user)
     socket.on('disconnect', () => connectedUsers.delete(socket.id))
     socket.emit('room:state', publicState())
+    const emitMyVotes = () => {
+      if (!user) return
+      const votes: Record<string, 1 | -1> = {}
+      for (const track of [...(state.current ? [state.current] : []), ...state.queue]) {
+        const vote = track.votes[user.id]
+        if (vote === 1 || vote === -1) votes[track.id] = vote
+      }
+      socket.emit('queue:my-votes', votes)
+    }
+    emitMyVotes()
     if (user) socket.emit('user:profile', safeUser(user))
-    socket.on('sync:request', () => socket.emit('room:state', publicState()))
+    socket.on('sync:request', () => { socket.emit('room:state', publicState()); emitMyVotes() })
     socket.on('playback:ended', (raw: unknown) => {
       if (!allowSocketEvent(actorId, 'playback:ended', 2, 60000)) return
       const parsed = z.object({ videoId: videoIdSchema }).safeParse(raw)
