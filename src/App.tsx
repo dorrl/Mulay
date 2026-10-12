@@ -199,7 +199,15 @@ export default function App() {
         }, 500)
       }
     })
-    s.on('chat:message', (m: Message) => setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) })))
+    s.on('chat:message', (m: Message) => {
+      if (m.senderSocketId === s.id) {
+        try {
+          const stored = JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]
+          window.localStorage.setItem('mulay-own-chat-ids', JSON.stringify([...stored.filter((id) => id !== m.id), m.id].slice(-500)))
+        } catch { /* Keep chat usable when storage is unavailable. */ }
+      }
+      setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) }))
+    })
     s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })); setNotice('공지: ' + a.text) })
     s.on('playback:resynced', () => setNotice('재생 위치를 다시 동기화했어요.'))
     return () => { s.disconnect(); socket.current = null }
@@ -798,8 +806,15 @@ export default function App() {
                 className={[
                   'chat-message',
                   message.admin ? 'is-admin' : '',
-                  (message.userId && message.userId === user?.id) ||
-                  (message.senderSocketId && message.senderSocketId === socket.current?.id)
+                  ((message.userId && message.userId === user?.id) ||
+                    (message.senderSocketId && message.senderSocketId === socket.current?.id) ||
+                    (() => {
+                      try {
+                        return (JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]).includes(message.id)
+                      } catch {
+                        return false
+                      }
+                    })())
                     ? 'is-own'
                     : '',
                 ].filter(Boolean).join(' ')}
@@ -814,7 +829,15 @@ export default function App() {
                   <div>
                     <strong>{message.name}</strong>
                     {message.admin && <span className="chat-role-badge">✦ ADMIN</span>}
-                    {((message.userId && message.userId === user?.id) || (message.senderSocketId && message.senderSocketId === socket.current?.id)) && (
+                    {((message.userId && message.userId === user?.id) ||
+                      (message.senderSocketId && message.senderSocketId === socket.current?.id) ||
+                      (() => {
+                        try {
+                          return (JSON.parse(window.localStorage.getItem('mulay-own-chat-ids') || '[]') as string[]).includes(message.id)
+                        } catch {
+                          return false
+                        }
+                      })()) && (
                       <span className="chat-own-badge">나</span>
                     )}
                     <time>
