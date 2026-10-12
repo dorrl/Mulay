@@ -664,7 +664,6 @@ main {
   grid-template-columns: minmax(0, 1fr);
 }
 .watch-layout:fullscreen ,
-
 .watch-layout.is-fullscreen{
   box-sizing: border-box;
   display: grid;
@@ -677,7 +676,6 @@ main {
   background: #101014;
 }
 .watch-layout:fullscreen > .player-card ,
-
 .watch-layout.is-fullscreen > .player-card{
   min-width: 0;
   min-height: 0;
@@ -687,7 +685,6 @@ main {
   border-radius: 12px;
 }
 .watch-layout:fullscreen .player-frame ,
-
 .watch-layout.is-fullscreen .player-frame{
   min-width: 0;
   width: 100%;
@@ -697,15 +694,12 @@ main {
 }
 .watch-layout:fullscreen #youtube-player,
 .watch-layout:fullscreen #youtube-player iframe ,
-
 .watch-layout.is-fullscreen #youtube-player,
-
 .watch-layout.is-fullscreen #youtube-player iframe{
   width: 100%;
   height: 100%;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   box-sizing: border-box;
   min-width: 0;
@@ -717,45 +711,38 @@ main {
   border-radius: 12px;
 }
 .watch-layout:fullscreen .chat-messages ,
-
 .watch-layout.is-fullscreen .chat-messages{
   min-height: 0;
   height: auto;
 }
 .watch-layout:fullscreen .now-playing ,
-
 .watch-layout.is-fullscreen .now-playing{
   min-width: 0;
   padding: 20px;
 }
 .watch-layout:fullscreen .track-title ,
-
 .watch-layout.is-fullscreen .track-title{
   overflow-wrap: anywhere;
 }
 @media (max-width: 900px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr) minmax(240px, 30vw);
     gap: 10px;
     padding: 10px;
   }
   .watch-layout:fullscreen > .player-card ,
-
-  .watch-layout.is-fullscreen > .player-card{
+.watch-layout.is-fullscreen > .player-card{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     overflow-y: auto;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     align-self: start;
   }
   .watch-layout:fullscreen .now-playing ,
-
-  .watch-layout.is-fullscreen .now-playing{
+.watch-layout.is-fullscreen .now-playing{
     border-left: 0;
     border-top: 1px solid #ffffff0b;
   }
@@ -765,33 +752,28 @@ main {
     height: 380px;
   }
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(180px, 36vh);
     padding: 8px;
     gap: 8px;
   }
   .watch-layout:fullscreen > .player-card ,
-
-  .watch-layout.is-fullscreen > .player-card{
+.watch-layout.is-fullscreen > .player-card{
     grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
   }
   .watch-layout:fullscreen > .player-card .now-playing ,
-
-  .watch-layout.is-fullscreen > .player-card .now-playing{
+.watch-layout.is-fullscreen > .player-card .now-playing{
     display: none;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     height: 100%;
     aspect-ratio: auto;
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     padding: 10px;
   }
 }
@@ -834,30 +816,23 @@ main {
 
 /* In fullscreen, keep the player and chat above a compact horizontal queue. */
 .watch-layout:fullscreen ,
-
-
-
-keep the player and chat above a compact horizontal queue. */
 .watch-layout.is-fullscreen{
   grid-template-rows: minmax(0, 1fr) minmax(125px, 22vh);
   grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   align-items: stretch;
 }
 .watch-layout:fullscreen > .player-card ,
-
 .watch-layout.is-fullscreen > .player-card{
   grid-column: 1;
   grid-row: 1;
   min-height: 0;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   grid-column: 2;
   grid-row: 1;
 }
 .watch-layout:fullscreen > .queue-section ,
-
 .watch-layout.is-fullscreen > .queue-section{
   grid-column: 1 / -1;
   grid-row: 2;
@@ -869,18 +844,15 @@ keep the player and chat above a compact horizontal queue. */
   overflow: hidden;
 }
 .watch-layout:fullscreen > .queue-section .section-heading ,
-
 .watch-layout.is-fullscreen > .queue-section .section-heading{
   margin-bottom: 6px;
 }
 .watch-layout:fullscreen > .queue-section .empty-list ,
-
 .watch-layout.is-fullscreen > .queue-section .empty-list{
   min-height: 0;
   flex: 1;
 }
 .watch-layout:fullscreen > .queue-section .queue-list ,
-
 .watch-layout.is-fullscreen > .queue-section .queue-list{
   display: flex;
   flex-direction: row;
@@ -892,7 +864,6 @@ keep the player and chat above a compact horizontal queue. */
   padding: 0 0 4px;
 }
 .watch-layout:fullscreen > .queue-section .queue-row ,
-
 .watch-layout.is-fullscreen > .queue-section .queue-row{
   flex: 0 0 250px;
   min-width: 0;
@@ -902,19 +873,16 @@ keep the player and chat above a compact horizontal queue. */
   padding-right: 12px;
 }
 .watch-layout:fullscreen > .queue-section .queue-row > img ,
-
 .watch-layout.is-fullscreen > .queue-section .queue-row > img{
   flex-basis: 64px;
   width: 64px;
 }
 .watch-layout:fullscreen > .queue-section .queue-info ,
-
 .watch-layout.is-fullscreen > .queue-section .queue-info{
   min-width: 0;
   flex: 1;
 }
 .watch-layout:fullscreen > .queue-section .queue-info strong ,
-
 .watch-layout.is-fullscreen > .queue-section .queue-info strong{
   display: -webkit-box;
   overflow: hidden;
@@ -923,46 +891,39 @@ keep the player and chat above a compact horizontal queue. */
 }
 @media (max-width: 900px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-rows: minmax(0, 1fr) minmax(110px, 20vh);
     grid-template-columns: minmax(0, 1fr) minmax(220px, 30vw);
   }
   .watch-layout:fullscreen > .queue-section .queue-row ,
-
-  .watch-layout.is-fullscreen > .queue-section .queue-row{
+.watch-layout.is-fullscreen > .queue-section .queue-row{
     flex-basis: 220px;
   }
 }
 @media (max-width: 600px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(155px, 27vh) minmax(100px, 18vh);
   }
   .watch-layout:fullscreen > .player-card ,
-
-  .watch-layout.is-fullscreen > .player-card{
+.watch-layout.is-fullscreen > .player-card{
     grid-column: 1;
     grid-row: 1;
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     grid-column: 1;
     grid-row: 2;
   }
   .watch-layout:fullscreen > .queue-section ,
-
-  .watch-layout.is-fullscreen > .queue-section{
+.watch-layout.is-fullscreen > .queue-section{
     grid-column: 1;
     grid-row: 3;
     padding: 8px 10px;
   }
   .watch-layout:fullscreen > .queue-section .queue-row ,
-
-  .watch-layout.is-fullscreen > .queue-section .queue-row{
+.watch-layout.is-fullscreen > .queue-section .queue-row{
     flex-basis: 190px;
   }
 }
@@ -970,21 +931,15 @@ keep the player and chat above a compact horizontal queue. */
 
 /* Fullscreen: keep the video and chat above, with now-playing and queue together below. */
 .watch-layout:fullscreen ,
-
-
-
-with now-playing and queue together below. */
 .watch-layout.is-fullscreen{
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) minmax(150px, 25vh);
 }
 .watch-layout:fullscreen > .player-card ,
-
 .watch-layout.is-fullscreen > .player-card{
   display: contents;
 }
 .watch-layout:fullscreen > .player-card > .player-frame ,
-
 .watch-layout.is-fullscreen > .player-card > .player-frame{
   grid-column: 1;
   grid-row: 1;
@@ -993,7 +948,6 @@ with now-playing and queue together below. */
   aspect-ratio: auto;
 }
 .watch-layout:fullscreen > .player-card > .now-playing ,
-
 .watch-layout.is-fullscreen > .player-card > .now-playing{
   grid-column: 1;
   grid-row: 2;
@@ -1004,58 +958,49 @@ with now-playing and queue together below. */
   border-radius: 12px;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   grid-column: 2;
   grid-row: 1;
 }
 .watch-layout:fullscreen > .queue-section ,
-
 .watch-layout.is-fullscreen > .queue-section{
   grid-column: 2;
   grid-row: 2;
 }
 @media (max-width: 900px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(135px, 24vh);
   }
   .watch-layout:fullscreen > .player-card > .now-playing ,
-
-  .watch-layout.is-fullscreen > .player-card > .now-playing{
+.watch-layout.is-fullscreen > .player-card > .now-playing{
     padding: 12px;
   }
 }
 @media (max-width: 600px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(145px, 24vh) minmax(125px, 22vh);
   }
   .watch-layout:fullscreen > .player-card > .player-frame ,
-
-  .watch-layout.is-fullscreen > .player-card > .player-frame{
+.watch-layout.is-fullscreen > .player-card > .player-frame{
     grid-column: 1;
     grid-row: 1;
   }
   .watch-layout:fullscreen > .player-card > .now-playing ,
-
-  .watch-layout.is-fullscreen > .player-card > .now-playing{
+.watch-layout.is-fullscreen > .player-card > .now-playing{
     grid-column: 1;
     grid-row: 2;
     display: flex;
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     display: none;
   }
   .watch-layout:fullscreen > .queue-section ,
-
-  .watch-layout.is-fullscreen > .queue-section{
+.watch-layout.is-fullscreen > .queue-section{
     grid-column: 1;
     grid-row: 3;
   }
@@ -1064,21 +1009,15 @@ with now-playing and queue together below. */
 
 /* Refine fullscreen proportions: constrain chat width and preserve a true 16:9 video. */
 .watch-layout:fullscreen ,
-
-
-
-/* Refine fullscreen proportions: constrain chat width and preserve a true 16:9 video. */
 .watch-layout.is-fullscreen{
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   grid-template-rows: minmax(0, 1fr) minmax(160px, 25vh);
 }
 .watch-layout:fullscreen > .player-card ,
-
 .watch-layout.is-fullscreen > .player-card{
   display: contents;
 }
 .watch-layout:fullscreen > .player-card > .player-frame ,
-
 .watch-layout.is-fullscreen > .player-card > .player-frame{
   grid-column: 1;
   grid-row: 1;
@@ -1091,15 +1030,12 @@ with now-playing and queue together below. */
 }
 .watch-layout:fullscreen > .player-card > .player-frame #youtube-player,
 .watch-layout:fullscreen > .player-card > .player-frame #youtube-player iframe ,
-
 .watch-layout.is-fullscreen > .player-card > .player-frame #youtube-player,
-
 .watch-layout.is-fullscreen > .player-card > .player-frame #youtube-player iframe{
   width: 100%;
   height: 100%;
 }
 .watch-layout:fullscreen > .player-card > .now-playing ,
-
 .watch-layout.is-fullscreen > .player-card > .now-playing{
   grid-column: 1;
   grid-row: 2;
@@ -1111,60 +1047,51 @@ with now-playing and queue together below. */
   border-radius: 12px;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   grid-column: 2;
   grid-row: 1;
   max-width: 340px;
 }
 .watch-layout:fullscreen > .queue-section ,
-
 .watch-layout.is-fullscreen > .queue-section{
   grid-column: 2;
   grid-row: 2;
 }
 @media (max-width: 900px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr) minmax(240px, 30vw);
     grid-template-rows: minmax(0, 1fr) minmax(140px, 24vh);
   }
   .watch-layout:fullscreen > .player-card > .player-frame ,
-
-  .watch-layout.is-fullscreen > .player-card > .player-frame{
+.watch-layout.is-fullscreen > .player-card > .player-frame{
     width: min(100%, calc((100vh - 24vh - 44px) * 16 / 9));
     max-height: calc(100vh - 24vh - 44px);
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     max-width: none;
   }
 }
 @media (max-width: 600px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(140px, 24vh) minmax(120px, 21vh);
   }
   .watch-layout:fullscreen > .player-card > .player-frame ,
-
-  .watch-layout.is-fullscreen > .player-card > .player-frame{
+.watch-layout.is-fullscreen > .player-card > .player-frame{
     grid-column: 1;
     grid-row: 1;
     width: min(100%, calc((100vh - 24vh - 21vh - 44px) * 16 / 9));
     max-height: calc(100vh - 24vh - 21vh - 44px);
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     display: none;
   }
   .watch-layout:fullscreen > .queue-section ,
-
-  .watch-layout.is-fullscreen > .queue-section{
+.watch-layout.is-fullscreen > .queue-section{
     grid-column: 1;
     grid-row: 3;
   }
@@ -1298,9 +1225,6 @@ main {
 
 /* Fullscreen retains the right-hand chat rail and wide player area. */
 .watch-layout:fullscreen ,
-
-
-/* Fullscreen retains the right-hand chat rail and wide player area. */
 .watch-layout.is-fullscreen{
   width: 100%;
   height: 100%;
@@ -1312,14 +1236,12 @@ main {
   background: #101014;
 }
 .watch-layout:fullscreen > .watch-main ,
-
 .watch-layout.is-fullscreen > .watch-main{
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   grid-column: 2;
   grid-row: 1;
@@ -1329,13 +1251,11 @@ main {
   max-height: none;
 }
 .watch-layout:fullscreen .watch-main > .player-card ,
-
 .watch-layout.is-fullscreen .watch-main > .player-card{
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(280px, .9fr);
 }
 .watch-layout:fullscreen .watch-main > .player-card .player-frame ,
-
 .watch-layout.is-fullscreen .watch-main > .player-card .player-frame{
   align-self: center;
   width: 100%;
@@ -1343,45 +1263,38 @@ main {
   aspect-ratio: 16 / 9;
 }
 .watch-layout:fullscreen .watch-main > .player-card .now-playing ,
-
 .watch-layout.is-fullscreen .watch-main > .player-card .now-playing{
   min-width: 0;
   overflow-y: auto;
 }
 .watch-layout:fullscreen .watch-secondary ,
-
 .watch-layout.is-fullscreen .watch-secondary{
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 @media (max-width: 1050px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(260px, 38vh);
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     grid-column: 1;
     grid-row: 2;
   }
 }
 @media (max-width: 760px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-rows: minmax(0, 1fr) minmax(260px, 38vh);
     padding: 10px;
   }
   .watch-layout:fullscreen .watch-main > .player-card ,
-
-  .watch-layout.is-fullscreen .watch-main > .player-card{
+.watch-layout.is-fullscreen .watch-main > .player-card{
     grid-template-columns: 1fr;
   }
   .watch-layout:fullscreen .watch-secondary ,
-
-  .watch-layout.is-fullscreen .watch-secondary{
+.watch-layout.is-fullscreen .watch-secondary{
     grid-template-columns: 1fr;
   }
 }
@@ -1389,10 +1302,6 @@ main {
 
 /* Final fullscreen watch layout: wide video, compact now-playing/queue footer, chat rail. */
 .watch-layout:fullscreen ,
-
-
-
-chat rail. */
 .watch-layout.is-fullscreen{
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 280px 320px;
@@ -1409,16 +1318,12 @@ chat rail. */
 .watch-layout:fullscreen > .watch-main,
 .watch-layout:fullscreen .watch-main > .player-card,
 .watch-layout:fullscreen .watch-main > .watch-secondary ,
-
 .watch-layout.is-fullscreen > .watch-main,
-
 .watch-layout.is-fullscreen .watch-main > .player-card,
-
 .watch-layout.is-fullscreen .watch-main > .watch-secondary{
   display: contents;
 }
 .watch-layout:fullscreen .player-frame ,
-
 .watch-layout.is-fullscreen .player-frame{
   grid-column: 1 / 4;
   grid-row: 1;
@@ -1434,15 +1339,12 @@ chat rail. */
 }
 .watch-layout:fullscreen #youtube-player,
 .watch-layout:fullscreen #youtube-player iframe ,
-
 .watch-layout.is-fullscreen #youtube-player,
-
 .watch-layout.is-fullscreen #youtube-player iframe{
   width: 100%;
   height: 100%;
 }
 .watch-layout:fullscreen .now-playing ,
-
 .watch-layout.is-fullscreen .now-playing{
   grid-column: 1;
   grid-row: 2;
@@ -1456,7 +1358,6 @@ chat rail. */
   background: #19191f;
 }
 .watch-layout:fullscreen .now-playing .track-title ,
-
 .watch-layout.is-fullscreen .now-playing .track-title{
   margin-top: 8px;
   font-size: 16px;
@@ -1467,7 +1368,6 @@ chat rail. */
   overflow: hidden;
 }
 .watch-layout:fullscreen .now-playing .track-subtitle ,
-
 .watch-layout.is-fullscreen .now-playing .track-subtitle{
   margin-top: 4px;
   overflow: hidden;
@@ -1475,43 +1375,35 @@ chat rail. */
   white-space: nowrap;
 }
 .watch-layout:fullscreen .playback-meta ,
-
 .watch-layout.is-fullscreen .playback-meta{
   margin-top: 8px;
   flex-wrap: wrap;
 }
 .watch-layout:fullscreen .track-progress ,
-
 .watch-layout.is-fullscreen .track-progress{
   margin-top: 8px;
 }
 .watch-layout:fullscreen .track-added-by,
 .watch-layout:fullscreen .current-votes ,
-
 .watch-layout.is-fullscreen .track-added-by,
-
 .watch-layout.is-fullscreen .current-votes{
   display: none;
 }
 .watch-layout:fullscreen .local-player-controls ,
-
 .watch-layout.is-fullscreen .local-player-controls{
   margin-top: 8px;
   flex-wrap: wrap;
 }
 .watch-layout:fullscreen .admin-playback ,
-
 .watch-layout.is-fullscreen .admin-playback{
   margin-top: 8px;
   flex-wrap: wrap;
 }
 .watch-layout:fullscreen .watch-secondary > .search-section ,
-
 .watch-layout.is-fullscreen .watch-secondary > .search-section{
   display: none;
 }
 .watch-layout:fullscreen .watch-secondary > .queue-section ,
-
 .watch-layout.is-fullscreen .watch-secondary > .queue-section{
   grid-column: 2 / 4;
   grid-row: 2;
@@ -1525,19 +1417,16 @@ chat rail. */
   flex-direction: column;
 }
 .watch-layout:fullscreen .queue-section .section-heading ,
-
 .watch-layout.is-fullscreen .queue-section .section-heading{
   flex: 0 0 auto;
   margin-bottom: 6px;
 }
 .watch-layout:fullscreen .queue-section .empty-list ,
-
 .watch-layout.is-fullscreen .queue-section .empty-list{
   min-height: 0;
   flex: 1;
 }
 .watch-layout:fullscreen .queue-section .queue-list ,
-
 .watch-layout.is-fullscreen .queue-section .queue-list{
   min-height: 0;
   height: auto;
@@ -1551,7 +1440,6 @@ chat rail. */
   padding: 0 0 4px;
 }
 .watch-layout:fullscreen .queue-section .queue-row ,
-
 .watch-layout.is-fullscreen .queue-section .queue-row{
   flex: 0 0 230px;
   min-width: 0;
@@ -1560,13 +1448,11 @@ chat rail. */
   border-right: 1px solid #ffffff10;
 }
 .watch-layout:fullscreen .queue-section .queue-row > img ,
-
 .watch-layout.is-fullscreen .queue-section .queue-row > img{
   flex: 0 0 64px;
   width: 64px;
 }
 .watch-layout:fullscreen .queue-section .queue-info strong ,
-
 .watch-layout.is-fullscreen .queue-section .queue-info strong{
   display: -webkit-box;
   white-space: normal;
@@ -1575,7 +1461,6 @@ chat rail. */
   -webkit-line-clamp: 2;
 }
 .watch-layout:fullscreen > .chat-section ,
-
 .watch-layout.is-fullscreen > .chat-section{
   grid-column: 4;
   grid-row: 1 / 3;
@@ -1590,108 +1475,91 @@ chat rail. */
   overflow: hidden;
 }
 .watch-layout:fullscreen > .chat-section .chat-messages ,
-
 .watch-layout.is-fullscreen > .chat-section .chat-messages{
   min-height: 0;
   height: auto;
   overflow-y: auto;
 }
 .watch-layout:fullscreen > .chat-section .section-heading ,
-
 .watch-layout.is-fullscreen > .chat-section .section-heading{
   flex: 0 0 auto;
 }
 @media (max-width: 1250px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: 210px minmax(0, 1fr) 240px 280px;
     grid-template-rows: minmax(0, 1fr) 164px;
     gap: 10px;
     padding: 10px;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     width: min(100%, calc((100dvh - 220px) * 16 / 9));
     max-height: calc(100dvh - 220px);
   }
   .watch-layout:fullscreen .now-playing,
   .watch-layout:fullscreen .watch-secondary > .queue-section,
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen .now-playing,
-
-  .watch-layout.is-fullscreen .watch-secondary > .queue-section,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen .now-playing,
+.watch-layout.is-fullscreen .watch-secondary > .queue-section,
+.watch-layout.is-fullscreen > .chat-section{
     padding: 10px;
   }
 }
 @media (max-width: 950px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr) minmax(250px, 34vw);
     grid-template-rows: minmax(0, 1fr) 150px;
     overflow: auto;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     grid-column: 1;
     grid-row: 1;
     width: 100%;
     max-height: none;
   }
   .watch-layout:fullscreen .now-playing ,
-
-  .watch-layout.is-fullscreen .now-playing{
+.watch-layout.is-fullscreen .now-playing{
     grid-column: 1;
     grid-row: 2;
   }
   .watch-layout:fullscreen .watch-secondary > .queue-section ,
-
-  .watch-layout.is-fullscreen .watch-secondary > .queue-section{
+.watch-layout.is-fullscreen .watch-secondary > .queue-section{
     grid-column: 2;
     grid-row: 2;
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     grid-column: 2;
     grid-row: 1 / 2;
   }
 }
 @media (max-width: 650px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) 135px 150px 220px;
     overflow-y: auto;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     grid-column: 1;
     grid-row: 1;
   }
   .watch-layout:fullscreen .now-playing ,
-
-  .watch-layout.is-fullscreen .now-playing{
+.watch-layout.is-fullscreen .now-playing{
     grid-column: 1;
     grid-row: 2;
   }
   .watch-layout:fullscreen .watch-secondary > .queue-section ,
-
-  .watch-layout.is-fullscreen .watch-secondary > .queue-section{
+.watch-layout.is-fullscreen .watch-secondary > .queue-section{
     grid-column: 1;
     grid-row: 3;
   }
   .watch-layout:fullscreen > .chat-section ,
-
-  .watch-layout.is-fullscreen > .chat-section{
+.watch-layout.is-fullscreen > .chat-section{
     grid-column: 1;
     grid-row: 4;
   }
@@ -1700,35 +1568,27 @@ chat rail. */
 
 /* Give now-playing enough room in fullscreen without shrinking the video too much. */
 .watch-layout:fullscreen ,
-
-
-
-/* Give now-playing enough room in fullscreen without shrinking the video too much. */
 .watch-layout.is-fullscreen{
   grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.5fr) minmax(260px, 1fr) clamp(300px, 23vw, 360px);
   grid-template-rows: minmax(0, 1fr) 220px;
 }
 .watch-layout:fullscreen .player-frame ,
-
 .watch-layout.is-fullscreen .player-frame{
   width: min(100%, calc((100dvh - 280px) * 16 / 9));
   max-height: calc(100dvh - 280px);
 }
 .watch-layout:fullscreen .now-playing ,
-
 .watch-layout.is-fullscreen .now-playing{
   padding: 18px;
   gap: 2px;
 }
 .watch-layout:fullscreen .now-playing .track-title ,
-
 .watch-layout.is-fullscreen .now-playing .track-title{
   font-size: clamp(17px, 1.2vw, 21px);
   line-height: 1.35;
   -webkit-line-clamp: 3;
 }
 .watch-layout:fullscreen .now-playing .track-subtitle ,
-
 .watch-layout.is-fullscreen .now-playing .track-subtitle{
   white-space: normal;
   display: -webkit-box;
@@ -1737,76 +1597,62 @@ chat rail. */
 }
 .watch-layout:fullscreen .track-added-by,
 .watch-layout:fullscreen .current-votes ,
-
 .watch-layout.is-fullscreen .track-added-by,
-
 .watch-layout.is-fullscreen .current-votes{
   display: flex;
 }
 .watch-layout:fullscreen .track-added-by ,
-
 .watch-layout.is-fullscreen .track-added-by{
   margin-top: 10px;
 }
 .watch-layout:fullscreen .current-votes ,
-
 .watch-layout.is-fullscreen .current-votes{
   margin-top: 8px;
   flex-wrap: wrap;
 }
 .watch-layout:fullscreen .local-player-controls,
 .watch-layout:fullscreen .admin-playback ,
-
 .watch-layout.is-fullscreen .local-player-controls,
-
 .watch-layout.is-fullscreen .admin-playback{
   gap: 6px;
 }
 @media (max-width: 1250px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1.4fr) minmax(220px, 1fr) minmax(250px, 280px);
     grid-template-rows: minmax(0, 1fr) 205px;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     width: min(100%, calc((100dvh - 265px) * 16 / 9));
     max-height: calc(100dvh - 265px);
   }
   .watch-layout:fullscreen .now-playing ,
-
-  .watch-layout.is-fullscreen .now-playing{
+.watch-layout.is-fullscreen .now-playing{
     padding: 12px;
   }
 }
 @media (max-width: 950px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-columns: minmax(0, 1fr) minmax(250px, 34vw);
     grid-template-rows: minmax(0, 1fr) 190px;
   }
   .watch-layout:fullscreen .player-frame ,
-
-  .watch-layout.is-fullscreen .player-frame{
+.watch-layout.is-fullscreen .player-frame{
     width: 100%;
     max-height: none;
   }
 }
 @media (max-width: 650px) {
   .watch-layout:fullscreen ,
-
-  .watch-layout.is-fullscreen{
+.watch-layout.is-fullscreen{
     grid-template-rows: minmax(0, 1fr) 155px 150px 220px;
   }
   .watch-layout:fullscreen .track-added-by,
   .watch-layout:fullscreen .current-votes ,
-
-  .watch-layout.is-fullscreen .track-added-by,
-
-  .watch-layout.is-fullscreen .current-votes{
+.watch-layout.is-fullscreen .track-added-by,
+.watch-layout.is-fullscreen .current-votes{
     display: none;
   }
 }
@@ -1844,6 +1690,3 @@ chat rail. */
   outline: 2px solid #c6f277;
   outline-offset: 2px;
 }
-
-/* Explicit class fallback for browsers where fullscreen pseudo styling is delayed. */
-.watch-layout.is-fullscreen { isolation: isolate; }
