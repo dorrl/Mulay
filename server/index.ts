@@ -56,15 +56,28 @@ registerHttpRoutes(serverRouter)
 app.use('/server', serverRouter)
 registerSocketHandlers(io)
 
-// Development build-watch and production build both serve the same dist/public directory.
-const clientDir = path.resolve(process.cwd(), 'dist/public')
-app.use(express.static(clientDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
-app.use((req, res, next) => {
-  if (req.path.startsWith('/server/')) return next()
-  const indexFile = path.join(clientDir, 'index.html')
-  if (!existsSync(indexFile)) return next()
-  res.sendFile(indexFile)
-})
+if (process.env.NODE_ENV === 'production') {
+  const clientDir = path.resolve(process.cwd(), 'dist/public')
+  app.use(express.static(clientDir, { index: false, maxAge: '1h' }))
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/server/')) return next()
+    const indexFile = path.join(clientDir, 'index.html')
+    if (!existsSync(indexFile)) return next()
+    res.sendFile(indexFile)
+  })
+} else {
+  const { createServer: createViteServer } = await import('vite')
+  const vite = await createViteServer({
+    configFile: path.resolve(process.cwd(), 'vite.config.ts'),
+    server: {
+      middlewareMode: true,
+      hmr: { server: httpServer },
+    },
+    appType: 'spa',
+  })
+  app.use(vite.middlewares)
+}
+
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[http]', error)
   res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' })
