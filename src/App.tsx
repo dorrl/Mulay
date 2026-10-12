@@ -196,6 +196,12 @@ export default function App() {
   }, [room.chat])
 
   useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 3500)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
+  useEffect(() => {
     fetch('/server/api/me', { credentials: 'include' }).then((r) => r.json()).then((d) => { setUser(d.user); setGoogleConfigured(d.googleConfigured) }).catch(() => setNotice('서버에 연결할 수 없습니다.'))
     const s = io({ path: '/server/socket.io', withCredentials: true, reconnection: true })
     socket.current = s
@@ -221,7 +227,7 @@ export default function App() {
       }
       setRoom((old) => ({ ...old, chat: [...old.chat.filter((x) => x.id !== m.id), m].slice(-100) }))
     })
-    s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })); setNotice('공지: ' + a.text) })
+    s.on('room:announcement', (a: NonNullable<Room['announcement']>) => { setRoom((old) => ({ ...old, announcement: a })) })
     s.on('playback:resynced', () => setNotice('재생 위치를 다시 동기화했어요.'))
     return () => { s.disconnect(); socket.current = null }
   }, [])
@@ -547,7 +553,7 @@ export default function App() {
           </div>
         )}
         {notice && (
-          <div className="notice" role="status">
+          <div className="notice toast-notice" role="status">
             <span>{notice}</span>
             <button onClick={() => setNotice('')} aria-label="알림 닫기">×</button>
           </div>
