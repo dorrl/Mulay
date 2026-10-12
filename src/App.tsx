@@ -146,6 +146,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null)
   const [googleConfigured, setGoogleConfigured] = useState(false)
   const [room, setRoom] = useState<Room>(blank)
+  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({})
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searching, setSearching] = useState(false)
@@ -190,6 +191,7 @@ export default function App() {
     s.on('connect', () => { setOnline(true); awaitingSync.current = true; s.emit('sync:request') })
     s.on('disconnect', () => setOnline(false))
     s.on('connect_error', (e: Error) => { setOnline(false); if (e.message) setNotice(e.message) })
+    s.on('queue:my-votes', (votes: Record<string, 1 | -1>) => setMyVotes(votes))
     s.on('room:state', (next: Room) => {
       setRoom(next)
       if (awaitingSync.current) {
@@ -442,7 +444,7 @@ export default function App() {
 
     socket.current?.emit(
       'queue:vote',
-      { trackId: track.id, vote: value },
+      { trackId: track.id, vote: myVotes[track.id] === value ? 0 : value },
       (result: { ok: boolean; error?: string }) => {
         if (!result.ok) setNotice(result.error || '투표 실패')
       },
@@ -659,10 +661,10 @@ export default function App() {
 
             {room.current && (
               <div className="current-votes">
-                <button onClick={() => vote(room.current!, 1)}>
+                <button className={myVotes[room.current.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === 1} onClick={() => vote(room.current!, 1)}>
                   ↑ 좋아요 {room.current.likes}
                 </button>
-                <button onClick={() => vote(room.current!, -1)}>
+                <button className={myVotes[room.current.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === -1} onClick={() => vote(room.current!, -1)}>
                   ↓ 싫어요 {room.current.dislikes}
                 </button>
               </div>
@@ -778,10 +780,10 @@ export default function App() {
                           <span>{track.channel}</span>
                         </div>
                         <div className="vote-actions">
-                          <button title="좋아요" onClick={() => vote(track, 1)}>
+                          <button className={myVotes[track.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === 1} title={myVotes[track.id] === 1 ? '좋아요 취소' : '좋아요'} onClick={() => vote(track, 1)}>
                             ↑ <span>{track.likes}</span>
                           </button>
-                          <button title="싫어요" onClick={() => vote(track, -1)}>
+                          <button className={myVotes[track.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === -1} title={myVotes[track.id] === -1 ? '싫어요 취소' : '싫어요'} onClick={() => vote(track, -1)}>
                             ↓ <span>{track.dislikes}</span>
                           </button>
                         </div>
