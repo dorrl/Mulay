@@ -3,6 +3,9 @@ import babel from '@rolldown/plugin-babel'
 import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  server: {
+    allowedHosts: ['mulay.dorrl.com']
+  },
   build: {
     outDir: 'dist/public',
     emptyOutDir: true,
