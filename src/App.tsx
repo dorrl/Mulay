@@ -254,6 +254,7 @@ export default function App() {
           rel: 0,
           origin: window.location.origin,
           controls: 0,
+          cc_load_policy: 0,
           disablekb: 1,
           fs: 0,
         },
