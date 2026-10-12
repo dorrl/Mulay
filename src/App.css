@@ -1535,3 +1535,21 @@ main {
   background: #c6f27718;
   border-color: #c6f27735;
 }
+
+
+/* Make the current user's vote visible and let the same button undo it. */
+.vote-actions button.is-selected,
+.current-votes button.is-selected {
+  color: #c6f277;
+  background: #c6f27718;
+  border-color: #c6f27770;
+  box-shadow: inset 0 0 0 1px #c6f27720;
+}
+.vote-actions button.is-selected {
+  font-weight: 700;
+}
+.vote-actions button:focus-visible,
+.current-votes button:focus-visible {
+  outline: 2px solid #c6f277;
+  outline-offset: 2px;
+}
