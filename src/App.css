@@ -1033,3 +1033,195 @@ main {
     grid-row: 3;
   }
 }
+
+
+/* Spotify-inspired wide desktop layout: roomy player, split discovery panels, persistent chat rail. */
+.topbar {
+  max-width: 1760px;
+}
+main {
+  width: min(1760px, calc(100% - 64px));
+}
+.intro {
+  text-align: left;
+  padding: 38px 0 28px;
+}
+.watch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 25vw, 390px);
+  gap: 20px;
+  align-items: stretch;
+}
+.watch-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.watch-main > .player-card {
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, .9fr);
+  min-width: 0;
+}
+.watch-secondary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.watch-secondary > .queue-section,
+.watch-secondary > .search-section {
+  min-width: 0;
+  margin-top: 0;
+}
+.watch-secondary > .search-section {
+  padding: 22px;
+  border: 1px solid #ffffff10;
+  border-radius: 15px;
+  background: #19191f;
+}
+.watch-layout > .chat-section {
+  position: sticky;
+  top: 16px;
+  height: calc(100vh - 32px);
+  min-height: 420px;
+  max-height: 900px;
+  padding: 22px 18px;
+}
+.watch-layout > .chat-section .chat-messages {
+  height: auto;
+  min-height: 0;
+}
+.watch-layout > .chat-section .section-heading {
+  flex: 0 0 auto;
+}
+.watch-layout > .chat-section .chat-copy > div {
+  flex-wrap: wrap;
+  gap: 5px 7px;
+}
+.watch-layout > .chat-section .chat-copy time {
+  margin-left: auto;
+}
+.watch-layout > .chat-section .chat-message {
+  gap: 8px;
+}
+.watch-layout > .chat-section .chat-message > img,
+.watch-layout > .chat-section .avatar-fallback {
+  flex-basis: 25px;
+  width: 25px;
+  height: 25px;
+}
+.site-footer {
+  max-width: none;
+}
+@media (min-width: 1500px) {
+  .watch-main > .player-card {
+    grid-template-columns: minmax(0, 2.1fr) minmax(320px, .85fr);
+  }
+}
+@media (max-width: 1050px) {
+  main {
+    width: min(100% - 40px, 900px);
+  }
+  .watch-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .watch-layout > .chat-section {
+    position: static;
+    height: 420px;
+    min-height: 0;
+    max-height: none;
+  }
+}
+@media (max-width: 760px) {
+  main {
+    width: min(560px, calc(100% - 32px));
+  }
+  .intro {
+    text-align: center;
+    padding: 46px 0 28px;
+  }
+  .watch-main > .player-card {
+    grid-template-columns: 1fr;
+  }
+  .watch-secondary {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .watch-secondary > .search-section {
+    padding: 18px;
+  }
+  .watch-layout > .chat-section {
+    height: 360px;
+    padding: 18px;
+  }
+}
+@media (max-width: 420px) {
+  main {
+    width: calc(100% - 24px);
+  }
+}
+
+/* Fullscreen retains the right-hand chat rail and wide player area. */
+.watch-layout:fullscreen {
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 25vw, 390px);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: auto;
+  background: #101014;
+}
+.watch-layout:fullscreen > .watch-main {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.watch-layout:fullscreen > .chat-section {
+  grid-column: 2;
+  grid-row: 1;
+  position: static;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+.watch-layout:fullscreen .watch-main > .player-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(280px, .9fr);
+}
+.watch-layout:fullscreen .watch-main > .player-card .player-frame {
+  align-self: center;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+.watch-layout:fullscreen .watch-main > .player-card .now-playing {
+  min-width: 0;
+  overflow-y: auto;
+}
+.watch-layout:fullscreen .watch-secondary {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 1050px) {
+  .watch-layout:fullscreen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(260px, 38vh);
+  }
+  .watch-layout:fullscreen > .chat-section {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+@media (max-width: 760px) {
+  .watch-layout:fullscreen {
+    grid-template-rows: minmax(0, 1fr) minmax(260px, 38vh);
+    padding: 10px;
+  }
+  .watch-layout:fullscreen .watch-main > .player-card {
+    grid-template-columns: 1fr;
+  }
+  .watch-layout:fullscreen .watch-secondary {
+    grid-template-columns: 1fr;
+  }
+}
