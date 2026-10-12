@@ -15,7 +15,19 @@ export const publicState = () => ({
   startedAt: state.startedAt, pausedAt: state.pausedAt, paused: state.paused, announcement: state.announcement,
   chat: state.chat.slice(-100).map(({ userId: _userId, ...message }) => message),
 })
-export const broadcastState = (io: Server) => io.emit('room:state', publicState())
+export const broadcastState = (io: Server) => {
+  io.emit('room:state', publicState())
+  for (const socket of io.sockets.sockets.values()) {
+    const user = getUser(socket)
+    if (!user) continue
+    const votes: Record<string, 1 | -1> = {}
+    for (const track of [...(state.current ? [state.current] : []), ...state.queue]) {
+      const vote = track.votes[user.id]
+      if (vote === 1 || vote === -1) votes[track.id] = vote
+    }
+    socket.emit('queue:my-votes', votes)
+  }
+}
 export const promoteNext = (io: Server) => {
   state.current = state.queue.shift() ?? null; state.startedAt = state.current ? Date.now() : null
   state.pausedAt = null; state.paused = false; void persist(); broadcastState(io)
