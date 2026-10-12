@@ -56,15 +56,15 @@ registerHttpRoutes(serverRouter)
 app.use('/server', serverRouter)
 registerSocketHandlers(io)
 
-// Both development and production serve the built frontend and API from this origin.
+// Development build-watch and production build both serve the same dist/public directory.
 const clientDir = path.resolve(process.cwd(), 'dist/public')
-if (existsSync(path.join(clientDir, 'index.html'))) {
-  app.use(express.static(clientDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/server/')) return next()
-    res.sendFile(path.join(clientDir, 'index.html'))
-  })
-}
+app.use(express.static(clientDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
+app.use((req, res, next) => {
+  if (req.path.startsWith('/server/')) return next()
+  const indexFile = path.join(clientDir, 'index.html')
+  if (!existsSync(indexFile)) return next()
+  res.sendFile(indexFile)
+})
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[http]', error)
   res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' })
