@@ -437,6 +437,13 @@ export default function App() {
   }
 
   const vote = (track: Track, value: 1 | -1) => {
+    const nextVote = myVotes[track.id] === value ? 0 : value
+    setMyVotes((old) => {
+      const next = { ...old }
+      if (nextVote === 0) delete next[track.id]
+      else next[track.id] = nextVote
+      return next
+    })
     if (!user) {
       setNotice('투표하려면 로그인이 필요해요.')
       return
