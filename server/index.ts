@@ -3,7 +3,6 @@ import express, { Router } from 'express'
 import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import session from 'express-session'
 import passport from 'passport'
 import helmet from 'helmet'
@@ -20,7 +19,7 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   path: '/server/socket.io',
-  cors: { origin: process.env.WEB_ORIGIN || 'http://localhost:5173', credentials: true },
+  cors: { origin: process.env.WEB_ORIGIN || 'http://localhost:33541', credentials: true },
   maxHttpBufferSize: 1e6,
   connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000, skipMiddlewares: false },
 })
@@ -57,7 +56,8 @@ registerHttpRoutes(serverRouter)
 app.use('/server', serverRouter)
 registerSocketHandlers(io)
 
-const clientDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public')
+// Both development and production serve the built frontend and API from this origin.
+const clientDir = path.resolve(process.cwd(), 'dist/public')
 if (existsSync(path.join(clientDir, 'index.html'))) {
   app.use(express.static(clientDir, { index: false, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }))
   app.use((req, res, next) => {
