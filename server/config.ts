@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import path from 'node:path'
-export const PORT = Number(process.env.PORT || 3001)
-export const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173'
+export const PORT = 33541
+export const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:33541'
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || './data')
 export const DATA_FILE = path.join(DATA_DIR, 'room.json')
 export const SESSION_FILE = path.join(DATA_DIR, 'sessions.json')
