@@ -156,6 +156,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('')
   const [adminId, setAdminId] = useState('')
   const [recommendationCooldownMinutes, setRecommendationCooldownMinutes] = useState(5)
+  const recommendationCooldownDirty = useRef(false)
   const [activeUsers, setActiveUsers] = useState<User[]>([])
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(false)
@@ -214,7 +215,7 @@ export default function App() {
     s.on('queue:my-votes', (votes: Record<string, 1 | -1>) => setMyVotes(votes))
     s.on('room:state', (next: Room) => {
       setRoom(next)
-      setRecommendationCooldownMinutes(next.recommendationCooldownMinutes ?? 5)
+      if (!recommendationCooldownDirty.current) setRecommendationCooldownMinutes(next.recommendationCooldownMinutes ?? 5)
       if (awaitingSync.current) {
         awaitingSync.current = false
         window.setTimeout(() => {
@@ -955,6 +956,7 @@ export default function App() {
               <form
                 onSubmit={(event) => {
                   event.preventDefault()
+                  recommendationCooldownDirty.current = false
                   admin({ action: 'setRecommendationCooldown', minutes: recommendationCooldownMinutes })
                 }}
               >
@@ -966,7 +968,10 @@ export default function App() {
                     max={1440}
                     step={1}
                     value={recommendationCooldownMinutes}
-                    onChange={(event) => setRecommendationCooldownMinutes(Math.min(1440, Math.max(0, Number(event.target.value) || 0)))}
+                    onChange={(event) => {
+                      recommendationCooldownDirty.current = true
+                      setRecommendationCooldownMinutes(Math.min(1440, Math.max(0, Number(event.target.value) || 0)))
+                    }}
                     aria-label="음악 추천 쿨타임(분)"
                   />
                   <span className="admin-hint">분 · 0분이면 쿨타임 없음 (최대 24시간)</span>
