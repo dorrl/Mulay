@@ -9,12 +9,5 @@ export default defineConfig({
   build: {
     outDir: 'dist/public',
     emptyOutDir: true,
-    watch: {},
-    minify: false,
-    sourcemap: false,
-    cssMinify: false,
-    rollupOptions: {
-      treeshake: false
-    }
   }
 })
