@@ -14,6 +14,7 @@ export const publicState = () => ({
   queue: state.queue.map(({ votes, ...track }) => ({ ...track, likes: Object.values(votes).filter(v => v === 1).length, dislikes: Object.values(votes).filter(v => v === -1).length })),
   startedAt: state.startedAt, pausedAt: state.pausedAt, paused: state.paused, announcement: state.announcement,
   chat: state.chat.slice(-100).map(({ userId: _userId, ...message }) => message),
+  recommendationCooldownMinutes: state.recommendationCooldownMinutes ?? 5,
 })
 export const broadcastState = (io: Server) => {
   io.emit('room:state', publicState())
