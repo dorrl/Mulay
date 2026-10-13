@@ -5,8 +5,9 @@ export type RoomState = {
   current: Track | null; queue: Track[]; history: { videoId: string; addedAt: number; addedBy?: string }[]
   startedAt: number | null; pausedAt: number | null; paused: boolean
   announcement: { id: string; text: string; at: number } | null; bannedUsers: string[]; chat: ChatMessage[]
+  recommendationCooldownMinutes: number
 }
 export const blankState = (): RoomState => ({
   current: null, queue: [], history: [], startedAt: null, pausedAt: null,
-  paused: false, announcement: null, bannedUsers: [], chat: [],
+  paused: false, announcement: null, bannedUsers: [], chat: [], recommendationCooldownMinutes: 5,
 })

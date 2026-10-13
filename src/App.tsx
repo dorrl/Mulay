@@ -41,6 +41,7 @@ type Room = {
   paused: boolean
   announcement: { id: string; text: string; at: number } | null
   chat: Message[]
+  recommendationCooldownMinutes: number
 }
 
 type Result = {
@@ -96,6 +97,7 @@ const blank: Room = {
   paused: false,
   announcement: null,
   chat: [],
+  recommendationCooldownMinutes: 5,
 }
 
 const formatTime = (seconds: number): string => {
@@ -153,6 +155,8 @@ export default function App() {
   const [searchError, setSearchError] = useState('')
   const [chatInput, setChatInput] = useState('')
   const [adminId, setAdminId] = useState('')
+  const [recommendationCooldownMinutes, setRecommendationCooldownMinutes] = useState(5)
+  const recommendationCooldownDirty = useRef(false)
   const [activeUsers, setActiveUsers] = useState<User[]>([])
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(false)
@@ -211,6 +215,7 @@ export default function App() {
     s.on('queue:my-votes', (votes: Record<string, 1 | -1>) => setMyVotes(votes))
     s.on('room:state', (next: Room) => {
       setRoom(next)
+      if (!recommendationCooldownDirty.current) setRecommendationCooldownMinutes(next.recommendationCooldownMinutes ?? 5)
       if (awaitingSync.current) {
         awaitingSync.current = false
         window.setTimeout(() => {
@@ -490,7 +495,7 @@ export default function App() {
     )
   }
 
-  const admin = (command: Record<string, string>) => {
+  const admin = (command: Record<string, string | number>) => {
     socket.current?.emit(
       'admin:command',
       command,
@@ -945,6 +950,32 @@ export default function App() {
                   >
                     차단 해제
                   </button>
+                </div>
+              </form>
+
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  recommendationCooldownDirty.current = false
+                  admin({ action: 'setRecommendationCooldown', minutes: recommendationCooldownMinutes })
+                }}
+              >
+                <label>음악 추천 쿨타임</label>
+                <div className="admin-inline">
+                  <input
+                    type="number"
+                    min={0}
+                    max={1440}
+                    step={1}
+                    value={recommendationCooldownMinutes}
+                    onChange={(event) => {
+                      recommendationCooldownDirty.current = true
+                      setRecommendationCooldownMinutes(Math.min(1440, Math.max(0, Number(event.target.value) || 0)))
+                    }}
+                    aria-label="음악 추천 쿨타임(분)"
+                  />
+                  <span className="admin-hint">분 · 0분이면 쿨타임 없음 (최대 24시간)</span>
+                  <button>쿨타임 저장</button>
                 </div>
               </form>
 

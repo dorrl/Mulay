@@ -18,6 +18,7 @@ const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('stop') }),
   z.object({ action: z.literal('pause') }),
   z.object({ action: z.literal('resume') }),
+  z.object({ action: z.literal('setRecommendationCooldown'), minutes: z.number().int().min(0).max(1440) }),
 ])
 export const registerSocketHandlers = (io: Server) => {
   io.use((socket, next) => {
@@ -59,8 +60,9 @@ export const registerSocketHandlers = (io: Server) => {
       if (!parsed.success) return ack?.({ ok: false, error: '영상 정보가 올바르지 않습니다.' })
       const now = Date.now()
       const lastUserAdded = state.history.filter(item => item.addedBy === user.id).reduce((latest, item) => Math.max(latest, item.addedAt), 0)
-      const cooldownRemaining = 5 * 60 * 1000 - (now - lastUserAdded)
-      if (!user.admin && cooldownRemaining > 0) {
+      const cooldownMs = (state.recommendationCooldownMinutes ?? 5) * 60 * 1000
+      const cooldownRemaining = cooldownMs - (now - lastUserAdded)
+      if (!user.admin && cooldownMs > 0 && cooldownRemaining > 0) {
         return ack?.({
           ok: false,
           error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(cooldownRemaining / 60000)}분 후 다시 시도하세요.`,
@@ -79,7 +81,7 @@ export const registerSocketHandlers = (io: Server) => {
       if (durationSeconds > 600) return ack?.({ ok: false, error: '10분을 초과하는 영상은 추가할 수 없습니다.' })
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
-      if (!user.admin && checkedAt - recentUserAdd < 5 * 60 * 1000) {
+      if (!user.admin && (state.recommendationCooldownMinutes ?? 5) > 0 && checkedAt - recentUserAdd < (state.recommendationCooldownMinutes ?? 5) * 60 * 1000) {
         const remaining = 5 * 60 * 1000 - (checkedAt - recentUserAdd)
         return ack?.({
           ok: false,
@@ -145,6 +147,8 @@ export const registerSocketHandlers = (io: Server) => {
           state.pausedAt = null
           state.paused = false
         }
+      } else if (command.action === 'setRecommendationCooldown') {
+        state.recommendationCooldownMinutes = command.minutes
       } else if (command.action === 'stop') {
         state.current = null; state.startedAt = null; state.pausedAt = null; state.paused = false
       }
