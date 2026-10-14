@@ -1729,3 +1729,31 @@ main {
     max-width: calc(100vw - 24px);
   }
 }
+
+
+/* Admin cooldown helper text */
+.admin-hint {
+  display: inline-flex;
+  align-items: center;
+  color: #92919d;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/* Keep the GitHub mark fully visible inside the footer link. */
+.site-footer .source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 2px;
+  overflow: visible;
+}
+.site-footer .source-link svg {
+  display: block;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
