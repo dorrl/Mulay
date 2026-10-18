@@ -33,6 +33,16 @@ export const promoteNext = (io: Server) => {
   state.current = state.queue.shift() ?? null; state.startedAt = state.current ? Date.now() : null
   state.pausedAt = null; state.paused = false; void persist(); broadcastState(io)
 }
+
+// Server-side fallback: advance tracks from the authoritative start time and duration,
+// even when no browser is connected to report YouTube's ENDED event.
+export const checkPlaybackEnd = (io: Server) => {
+  const track = state.current
+  if (!track || state.paused || state.startedAt === null) return
+  if (!Number.isFinite(track.durationSeconds) || (track.durationSeconds ?? 0) <= 0) return
+  const elapsedSeconds = (Date.now() - state.startedAt) / 1000
+  if (elapsedSeconds >= (track.durationSeconds as number) + 2) promoteNext(io)
+}
 export const getUser = (socket: Socket): User | null => (socket.request as typeof socket.request & { user?: User }).user ?? null
 export const publicChatMessage = (message: ChatMessage, senderSocketId?: string) => {
   const { userId: _userId, ...publicMessage } = message
