@@ -14,6 +14,7 @@ import { JsonSessionStore } from './storage/json-session-store.js'
 import { loadState } from './storage/room-store.js'
 import { registerHttpRoutes } from './routes/http.js'
 import { registerSocketHandlers } from './socket/handlers.js'
+import { checkPlaybackEnd } from './services/room.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -83,6 +84,8 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' })
 })
 await loadState()
+// The server owns track progression; this works even with no admin or viewers online.
+setInterval(() => checkPlaybackEnd(io), 1000)
 await new Promise<void>((resolve, reject) => {
   httpServer.once('error', reject)
   httpServer.listen(PORT, resolve)
