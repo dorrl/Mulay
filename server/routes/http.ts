@@ -1,5 +1,6 @@
 import type { Router } from 'express'
 import passport from 'passport'
+import rateLimit from 'express-rate-limit'
 import { z } from 'zod'
 import { currentUser, publicUser, requireAdmin, requireUser } from '../auth.js'
 import { WEB_ORIGIN } from '../config.js'
@@ -7,6 +8,14 @@ import { connectedUsers } from '../runtime.js'
 import { state } from '../storage/room-store.js'
 import { publicState } from '../services/room.js'
 import { fetchVideoDurations } from '../services/youtube.js'
+
+const searchRateLimit = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+})
+
 export const registerHttpRoutes = (app: Router) => {
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
   app.get('/api/me', (req, res) => {
@@ -27,7 +36,9 @@ export const registerHttpRoutes = (app: Router) => {
       res.clearCookie('mulay.sid'); res.json({ ok: true })
     })
   }))
-  app.get('/api/search', async (req, res) => {
+  // Search triggers multiple quota-consuming YouTube API calls; give it a stricter
+  // per-IP limit than the general HTTP API.
+  app.get('/api/search', searchRateLimit, async (req, res) => {
     const query = z.string().trim().min(1).max(100).safeParse(req.query.q)
     if (!query.success) return res.status(400).json({ error: '검색어를 1~100자로 입력하세요.' })
     if (!process.env.YOUTUBE_API_KEY) return res.status(503).json({ error: 'YouTube Data API 키가 설정되지 않았습니다.' })
