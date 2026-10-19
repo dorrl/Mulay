@@ -9,10 +9,11 @@ export const allowSocketEvent = (userId: string, event: string, limit: number, w
   const now = Date.now()
 
   // Anonymous clients can reconnect with a new socket ID indefinitely. Periodically
-  // prune expired buckets so rate limiting itself cannot become an unbounded memory sink.
+  // prune buckets older than the longest configured rate-limit window (60 seconds),
+  // so this map cannot become an unbounded memory sink or weaken shorter/longer limits.
   if (++eventChecks % 256 === 0 || socketEventTimes.size > 5000) {
     for (const [bucketKey, times] of socketEventTimes) {
-      const activeTimes = times.filter(time => now - time < windowMs)
+      const activeTimes = times.filter(time => now - time < 60_000)
       if (activeTimes.length) socketEventTimes.set(bucketKey, activeTimes)
       else socketEventTimes.delete(bucketKey)
     }
