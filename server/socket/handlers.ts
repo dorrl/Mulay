@@ -23,7 +23,11 @@ const commandSchema = z.discriminatedUnion('action', [
 export const registerSocketHandlers = (io: Server) => {
   io.use((socket, next) => {
     const origin = socket.handshake.headers.origin
-    if (origin && origin !== WEB_ORIGIN) return next(new Error('origin not allowed'))
+    // Browsers normally send Origin. In production, reject missing Origin as well
+    // as mismatches so non-browser clients cannot bypass the origin gate.
+    if (process.env.NODE_ENV === 'production' ? origin !== WEB_ORIGIN : Boolean(origin && origin !== WEB_ORIGIN)) {
+      return next(new Error('origin not allowed'))
+    }
     const user = getUser(socket)
     if (user && state.bannedUsers.includes(user.id)) return next(new Error('이용이 제한된 계정'))
     next()
