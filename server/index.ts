@@ -17,6 +17,8 @@ import { registerSocketHandlers } from './socket/handlers.js'
 import { checkPlaybackEnd } from './services/room.js'
 
 const app = express()
+const publicOrigin = new URL(process.env.WEB_ORIGIN || 'http://localhost:33541')
+const socketOrigin = `${publicOrigin.protocol === 'https:' ? 'wss:' : 'ws:'}//${publicOrigin.host}`
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   path: '/server/socket.io',
@@ -29,12 +31,12 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: { directives: {
     defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'unsafe-inline'", 'https://www.youtube.com', 'https://s.ytimg.com', 'https://apis.google.com'],
+    scriptSrc: ["'self'", 'https://www.youtube.com', 'https://s.ytimg.com', 'https://apis.google.com'],
     styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     imgSrc: ["'self'", 'data:', 'https://i.ytimg.com', 'https://*.googleusercontent.com', 'https://*.ggpht.com'],
     frameSrc: ["'self'", 'https://www.youtube.com', 'https://youtube.com', 'https://accounts.google.com'],
-    connectSrc: ["'self'", 'https://www.googleapis.com', 'https://www.youtube.com', 'wss:', 'ws:'],
+    connectSrc: ["'self'", socketOrigin, 'https://www.googleapis.com', 'https://www.youtube.com'],
   } },
 }))
 app.use(express.json({ limit: '32kb' }))
@@ -72,7 +74,7 @@ if (process.env.NODE_ENV === 'production') {
     configFile: path.resolve(process.cwd(), 'vite.config.ts'),
     server: {
       middlewareMode: true,
-      hmr: { server: httpServer },
+      ws: { server: httpServer },
     },
     appType: 'spa',
   })
