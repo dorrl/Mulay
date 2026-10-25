@@ -124,7 +124,7 @@ export const registerSocketHandlers = (io: Server) => {
       if (!allowSocketEvent(user.id, 'chat:send', 6, 10000)) return ack?.({ ok: false, error: '채팅을 너무 빠르게 보내고 있어요.' })
       const parsed = chatSchema.safeParse(raw)
       if (!parsed.success) return ack?.({ ok: false, error: '채팅은 1~500자로 입력하세요.' })
-      const message: ChatMessage = { id: randomUUID(), userId: user.id, name: user.name, avatar: user.avatar, text: parsed.data, at: Date.now(), admin: user.admin }
+      const message: ChatMessage = { id: randomUUID(), userId: user.id, name: user.name, avatar: user.avatar, text: parsed.data, at: Date.now(), admin: isAdminUser(user) }
       state.chat.push(message); state.chat = state.chat.slice(-200)
       await persist(); io.emit('chat:message', publicChatMessage(message, socket.id)); ack?.({ ok: true })
     })
