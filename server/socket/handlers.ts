@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto'
 import type { Server } from 'socket.io'
 import { z } from 'zod'
 import { WEB_ORIGIN } from '../config.js'
-import { isAdminUser, isBannedUser } from '../auth.js'
+import { isAdminUser, isBannedUser, publicUser } from '../auth.js'
 import { allowSocketEvent, connectedUsers } from '../runtime.js'
 import { state, persist } from '../storage/room-store.js'
 import type { ChatMessage } from '../types.js'
-import { broadcastState, getUser, promoteNext, publicChatMessage, publicState, safeUser, toTrack } from '../services/room.js'
+import { broadcastState, getUser, promoteNext, publicChatMessage, publicState, toTrack } from '../services/room.js'
 import { fetchVideoDurations } from '../services/youtube.js'
 const videoIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{11}$/)
 const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional(), allowLongDuration: z.boolean().optional() })
@@ -35,7 +35,6 @@ export const registerSocketHandlers = (io: Server) => {
   })
   io.on('connection', socket => {
     const user = getUser(socket)
-    const actorId = user?.id ?? `guest:${socket.id}`
     if (user) connectedUsers.set(socket.id, user)
     socket.on('disconnect', () => connectedUsers.delete(socket.id))
     socket.emit('room:state', publicState())
@@ -49,15 +48,10 @@ export const registerSocketHandlers = (io: Server) => {
       socket.emit('queue:my-votes', votes)
     }
     emitMyVotes()
-    if (user) socket.emit('user:profile', safeUser(user))
+    if (user && !isBannedUser(user)) socket.emit('user:profile', publicUser(user))
     socket.on('sync:request', () => { socket.emit('room:state', publicState()); emitMyVotes() })
-    socket.on('playback:ended', (raw: unknown) => {
-      if (!allowSocketEvent(actorId, 'playback:ended', 2, 60000)) return
-      const parsed = z.object({ videoId: videoIdSchema }).safeParse(raw)
-      if (!parsed.success || state.current?.videoId !== parsed.data.videoId) return
-      if (Date.now() - (state.startedAt ?? Date.now()) < 30000) return
-      promoteNext(io)
-    })
+    // Track progression is server-authoritative (checkPlaybackEnd). Do not let an
+    // anonymous or authenticated client spoof playback:ended to skip the current track.
     socket.on('queue:add', async (raw: unknown, ack?: (result: { ok: boolean; error?: string }) => void) => {
       if (!user || isBannedUser(user)) return ack?.({ ok: false, error: '영상을 추가하려면 유효한 로그인이 필요합니다.' })
       if (!allowSocketEvent(user.id, 'queue:add', 10, 60000)) return ack?.({ ok: false, error: '영상 추가 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' })
