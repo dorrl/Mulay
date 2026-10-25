@@ -345,7 +345,7 @@ export default function App() {
     if (!room.paused && !localPausedRef.current && room.current) {
       player.current?.playVideo?.()
     }
-  }, [room.current?.videoId, room.startedAt, room.paused, room.pausedAt])
+  }, [room.current?.id, room.startedAt, room.paused, room.pausedAt])
 
   useEffect(() => {
     // Local pause is allowed. When the user resumes, the button seeks to the
