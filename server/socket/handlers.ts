@@ -7,7 +7,7 @@ import { allowSocketEvent, connectedUsers } from '../runtime.js'
 import { state, persist } from '../storage/room-store.js'
 import type { ChatMessage } from '../types.js'
 import { broadcastState, getUser, promoteNext, publicChatMessage, publicState, toTrack } from '../services/room.js'
-import { fetchVideoDurations } from '../services/youtube.js'
+import { fetchVideoDetails } from '../services/youtube.js'
 const videoIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{11}$/)
 const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional(), allowLongDuration: z.boolean().optional() })
 const chatSchema = z.string().trim().min(1).max(500)
@@ -74,9 +74,14 @@ export const registerSocketHandlers = (io: Server) => {
       }
       if (state.queue.length >= 100) return ack?.({ ok: false, error: '대기열이 가득 찼습니다.' })
       let durationSeconds: number | undefined
-      try { const durations = await fetchVideoDurations([parsed.data.videoId]); durationSeconds = durations.get(parsed.data.videoId) }
-      catch { return ack?.({ ok: false, error: '영상 길이를 확인하지 못했습니다. 잠시 후 다시 시도하세요.' }) }
-      if (durationSeconds === undefined) return ack?.({ ok: false, error: '영상 길이를 확인할 수 없습니다.' })
+      let isLiveVideo = false
+      try {
+        const details = await fetchVideoDetails([parsed.data.videoId])
+        durationSeconds = details.durations.get(parsed.data.videoId)
+        isLiveVideo = details.liveVideoIds.has(parsed.data.videoId)
+      } catch { return ack?.({ ok: false, error: '영상 정보를 확인하지 못했습니다. 잠시 후 다시 시도하세요.' }) }
+      if (isLiveVideo && !isAdminUser(user)) return ack?.({ ok: false, error: '라이브 영상은 관리자만 추가할 수 있습니다.' })
+      if (durationSeconds === undefined && !isLiveVideo) return ack?.({ ok: false, error: '영상 길이를 확인할 수 없습니다.' })
       if (durationSeconds > 600 && !(isAdminUser(user) && parsed.data.allowLongDuration === true)) return ack?.({ ok: false, error: '10분을 초과하는 영상은 관리자만 확인 후 추가할 수 있습니다.' })
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
