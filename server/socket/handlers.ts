@@ -81,7 +81,7 @@ export const registerSocketHandlers = (io: Server) => {
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
       if (!isAdminUser(user) && (state.recommendationCooldownMinutes ?? 5) > 0 && checkedAt - recentUserAdd < (state.recommendationCooldownMinutes ?? 5) * 60 * 1000) {
-        const remaining = 5 * 60 * 1000 - (checkedAt - recentUserAdd)
+        const remaining = (state.recommendationCooldownMinutes ?? 5) * 60 * 1000 - (checkedAt - recentUserAdd)
         return ack?.({
           ok: false,
           error: `영상 추가 쿨타임이 남았습니다. ${Math.ceil(remaining / 60000)}분 후 다시 시도하세요.`,
