@@ -8,7 +8,7 @@ import type { ChatMessage } from '../types.js'
 import { broadcastState, getUser, promoteNext, publicChatMessage, publicState, safeUser, toTrack } from '../services/room.js'
 import { fetchVideoDurations } from '../services/youtube.js'
 const videoIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{11}$/)
-const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional() })
+const addSchema = z.object({ videoId: videoIdSchema, title: z.string().min(1).max(200), channel: z.string().max(120), thumbnail: z.string().max(500).optional(), allowLongDuration: z.boolean().optional() })
 const chatSchema = z.string().trim().min(1).max(500)
 const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('ban'), userId: z.string().min(1).max(128) }),
@@ -82,7 +82,7 @@ export const registerSocketHandlers = (io: Server) => {
       try { const durations = await fetchVideoDurations([parsed.data.videoId]); durationSeconds = durations.get(parsed.data.videoId) }
       catch { return ack?.({ ok: false, error: '영상 길이를 확인하지 못했습니다. 잠시 후 다시 시도하세요.' }) }
       if (durationSeconds === undefined) return ack?.({ ok: false, error: '영상 길이를 확인할 수 없습니다.' })
-      if (durationSeconds > 600) return ack?.({ ok: false, error: '10분을 초과하는 영상은 추가할 수 없습니다.' })
+      if (durationSeconds > 600 && !(user.admin && parsed.data.allowLongDuration === true)) return ack?.({ ok: false, error: '10분을 초과하는 영상은 관리자만 확인 후 추가할 수 있습니다.' })
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
       if (!user.admin && (state.recommendationCooldownMinutes ?? 5) > 0 && checkedAt - recentUserAdd < (state.recommendationCooldownMinutes ?? 5) * 60 * 1000) {
