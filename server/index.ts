@@ -31,7 +31,9 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: { directives: {
     defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", 'https://www.youtube.com', 'https://s.ytimg.com', 'https://apis.google.com'],
+    // Vite injects inline scripts for the React Fast Refresh preamble in development.
+    // Keep production CSP strict; permit inline scripts only in development.
+    scriptSrc: ["'self'", ...(process.env.NODE_ENV === 'production' ? [] : ["'unsafe-inline'"]), 'https://www.youtube.com', 'https://s.ytimg.com', 'https://apis.google.com'],
     styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     imgSrc: ["'self'", 'data:', 'https://i.ytimg.com', 'https://*.googleusercontent.com', 'https://*.ggpht.com'],
