@@ -82,7 +82,7 @@ export const registerSocketHandlers = (io: Server) => {
       } catch { return ack?.({ ok: false, error: '영상 정보를 확인하지 못했습니다. 잠시 후 다시 시도하세요.' }) }
       if (isLiveVideo && !isAdminUser(user)) return ack?.({ ok: false, error: '라이브 영상은 관리자만 추가할 수 있습니다.' })
       if (durationSeconds === undefined && !isLiveVideo) return ack?.({ ok: false, error: '영상 길이를 확인할 수 없습니다.' })
-      if (durationSeconds > 600 && !(isAdminUser(user) && parsed.data.allowLongDuration === true)) return ack?.({ ok: false, error: '10분을 초과하는 영상은 관리자만 확인 후 추가할 수 있습니다.' })
+      if (durationSeconds !== undefined && durationSeconds > 600 && !(isAdminUser(user) && parsed.data.allowLongDuration === true)) return ack?.({ ok: false, error: '10분을 초과하는 영상은 관리자만 확인 후 추가할 수 있습니다.' })
       const checkedAt = Date.now()
       const recentUserAdd = state.history.reduce((latest, item) => item.addedBy === user.id ? Math.max(latest, item.addedAt) : latest, 0)
       if (!isAdminUser(user) && (state.recommendationCooldownMinutes ?? 5) > 0 && checkedAt - recentUserAdd < (state.recommendationCooldownMinutes ?? 5) * 60 * 1000) {
