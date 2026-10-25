@@ -128,10 +128,10 @@ const applyRoomToPlayer = (
   }
 
   const targetPosition = position(room)
-  if (loadedVideo.current !== room.current.videoId) {
+  if (loadedVideo.current !== room.current.id) {
     if (typeof player.loadVideoById !== 'function') return
-    loadedVideo.current = room.current.videoId
-    pendingVideoSync.current = room.current.videoId
+    loadedVideo.current = room.current.id
+    pendingVideoSync.current = room.current.id
     player.loadVideoById({
       videoId: room.current.videoId,
       startSeconds: targetPosition,
@@ -275,22 +275,13 @@ export default function App() {
             const states = window.YT?.PlayerState
             if (!states) return
 
-            if (event.data === states.ENDED) {
-              const endedTrack = currentRoom.current.current
-              if (endedTrack) {
-                socket.current?.emit('playback:ended', {
-                  videoId: endedTrack.videoId,
-                })
-              }
-            }
-
             // Track native YouTube pauses so resuming returns to the shared timeline.
             if (event.data === states.PAUSED && !currentRoom.current.paused && !localPausedRef.current) {
               manualPauseRef.current = true
             }
             if (event.data === states.PLAYING) {
               // Video loading can take time; seek again once playback actually starts.
-              if (pendingVideoSync.current === currentRoom.current.current?.videoId) {
+              if (pendingVideoSync.current === currentRoom.current.current?.id) {
                 event.target.seekTo?.(position(currentRoom.current), true)
                 pendingVideoSync.current = null
                 if (currentRoom.current.paused) event.target.pauseVideo?.()
@@ -345,7 +336,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (loadedVideo.current !== room.current?.videoId) {
+    if (loadedVideo.current !== room.current?.id) {
       localPausedRef.current = false
       manualPauseRef.current = false
       setLocalPaused(false)
@@ -354,7 +345,7 @@ export default function App() {
     if (!room.paused && !localPausedRef.current && room.current) {
       player.current?.playVideo?.()
     }
-  }, [room.current?.videoId, room.startedAt, room.paused, room.pausedAt])
+  }, [room.current?.id, room.startedAt, room.paused, room.pausedAt])
 
   useEffect(() => {
     // Local pause is allowed. When the user resumes, the button seeks to the
