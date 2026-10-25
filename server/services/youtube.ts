@@ -19,7 +19,7 @@ export const fetchVideoDetails = async (videoIds: string[]): Promise<YouTubeVide
   const body = await response.json() as { items?: { id: string; contentDetails?: { duration?: string }; snippet?: { liveBroadcastContent?: string }; liveStreamingDetails?: Record<string, unknown> }[] }
   for (const item of body.items ?? []) {
     if (item.contentDetails?.duration) durations.set(item.id, parseDuration(item.contentDetails.duration))
-    if (item.snippet?.liveBroadcastContent === 'live' || item.snippet?.liveBroadcastContent === 'upcoming' || item.liveStreamingDetails) liveVideoIds.add(item.id)
+    if (item.snippet?.liveBroadcastContent === 'live' || item.snippet?.liveBroadcastContent === 'upcoming') liveVideoIds.add(item.id)
   }
   return { durations, liveVideoIds }
 }
