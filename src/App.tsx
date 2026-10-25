@@ -434,10 +434,12 @@ export default function App() {
   }
 
   const add = (track: Result) => {
-    if (track.durationSeconds > 600) {
-      setNotice('10분을 초과하는 영상은 추가할 수 없어요.')
+    const overLimit = track.durationSeconds > 600
+    if (overLimit && !user?.admin) {
+      setNotice('10분을 초과하는 영상은 관리자만 추가할 수 있어요.')
       return
     }
+    if (overLimit && !window.confirm('이 영상은 10분을 초과합니다. 관리자 권한으로 대기열에 추가할까요?')) return
     if (!user) {
       setNotice('영상을 추가하려면 Google 로그인이 필요해요.')
       return
@@ -445,7 +447,7 @@ export default function App() {
 
     socket.current?.emit(
       'queue:add',
-      track,
+      { ...track, allowLongDuration: overLimit && user.admin },
       (result: { ok: boolean; error?: string }) => {
         setNotice(
           result.ok ? '대기열에 추가했어요.' : result.error || '추가하지 못했어요.',
@@ -773,11 +775,12 @@ export default function App() {
                           </span>
                         </div>
                         <button
-                          className="add-button"
-                          disabled={track.durationSeconds > 600}
+                          className={'add-button' + (track.durationSeconds > 600 && user?.admin ? ' is-admin-long' : '')}
+                          disabled={track.durationSeconds > 600 && !user?.admin}
                           onClick={() => add(track)}
+                          title={track.durationSeconds > 600 && user?.admin ? '관리자 전용: 확인 후 10분 초과 영상 추가' : undefined}
                         >
-                          {track.durationSeconds > 600 ? '10분 초과' : '＋ 추가'}
+                          {track.durationSeconds > 600 ? (user?.admin ? '＋ 관리자 추가' : '10분 초과') : '＋ 추가'}
                         </button>
                       </article>
                     ))}
