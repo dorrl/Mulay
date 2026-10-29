@@ -685,10 +685,10 @@ export default function App() {
             {room.current && (
               <div className="current-votes">
                 <button className={myVotes[room.current.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === 1} onClick={() => vote(room.current!, 1)}>
-                  ↑ 좋아요 {room.current.likes}
+                  <svg className="vote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 10v12" /><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 4a2 2 0 0 1 3 1.88Z" /></svg> 좋아요 {room.current.likes}
                 </button>
                 <button className={myVotes[room.current.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[room.current.id] === -1} onClick={() => vote(room.current!, -1)}>
-                  ↓ 싫어요 {room.current.dislikes}
+                  <svg className="vote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 14V2" /><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 20a2 2 0 0 1-3-1.88Z" /></svg> 싫어요 {room.current.dislikes}
                 </button>
               </div>
             )}
@@ -805,10 +805,10 @@ export default function App() {
                         </div>
                         <div className="vote-actions">
                           <button className={myVotes[track.id] === 1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === 1} title={myVotes[track.id] === 1 ? '좋아요 취소' : '좋아요'} onClick={() => vote(track, 1)}>
-                            ↑ <span>{track.likes}</span>
+                            <svg className="vote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 10v12" /><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 4a2 2 0 0 1 3 1.88Z" /></svg> <span>{track.likes}</span>
                           </button>
                           <button className={myVotes[track.id] === -1 ? 'is-selected' : ''} aria-pressed={myVotes[track.id] === -1} title={myVotes[track.id] === -1 ? '싫어요 취소' : '싫어요'} onClick={() => vote(track, -1)}>
-                            ↓ <span>{track.dislikes}</span>
+                            <svg className="vote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 14V2" /><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 20a2 2 0 0 1-3-1.88Z" /></svg> <span>{track.dislikes}</span>
                           </button>
                         </div>
                       </article>
